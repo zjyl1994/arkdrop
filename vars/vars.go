@@ -12,7 +12,8 @@ var (
 	DebugMode  bool
 	Password   string
 	AutoExpire time.Duration
-	DB         *gorm.DB
+
+	DB *gorm.DB
 )
 
 const (
