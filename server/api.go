@@ -2,6 +2,7 @@ package server
 
 import (
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,7 +20,7 @@ func CreateParcel(c *fiber.Ctx) error {
 	}
 	files := form.File["files"]
 	var attachments []service.Attachment
-	now := time.Now()
+	now := time.Now().Unix()
 	for _, file := range files {
 		diskFileName := utils.RandString(10) + filepath.Ext(file.Filename)
 		diskPath := filepath.Join(vars.DataDir, "files", diskFileName)
@@ -49,13 +50,41 @@ func CreateParcel(c *fiber.Ctx) error {
 }
 
 func ListParcel(c *fiber.Ctx) error {
-	return c.SendString("TODO")
+	parcels, err := parcelService.List()
+	if err != nil {
+		return err
+	}
+	return c.JSON(parcels)
 }
 
 func DeleteParcel(c *fiber.Ctx) error {
-	return c.SendString("TODO")
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	err = parcelService.Delete(id)
+	if err != nil {
+		return err
+	}
+	return c.SendString("OK")
 }
 
 func CleanParcel(c *fiber.Ctx) error {
-	return c.SendString("TODO")
+	err := parcelService.Clean()
+	if err != nil {
+		return err
+	}
+	return c.SendString("OK")
+}
+
+func FavoriteParcel(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	err = parcelService.Favorite(id)
+	if err != nil {
+		return err
+	}
+	return c.SendString("OK")
 }

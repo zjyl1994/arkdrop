@@ -13,6 +13,13 @@ func Run(listen string) error {
 		DisableStartupMessage: true,
 		BodyLimit:             10 * 1024 * 1024,
 	})
+	apiGroup := app.Group("/api")
+	apiGroup.Post("/create", CreateParcel)
+	apiGroup.Post("/delete", DeleteParcel)
+	apiGroup.Post("/clean", CleanParcel)
+	apiGroup.Get("/list", ListParcel)
+	apiGroup.Post("/favorite", FavoriteParcel)
+
 	app.Static("/files", filepath.Join(vars.DataDir, "files"), fiber.Static{
 		MaxAge: int(vars.AutoExpire.Seconds()),
 	})
