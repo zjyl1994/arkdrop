@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/zjyl1994/picotransfer/startup"
+	"github.com/zjyl1994/arkdrop/startup"
 )
 
 func main() {

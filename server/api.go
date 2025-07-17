@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/zjyl1994/picotransfer/service"
-	"github.com/zjyl1994/picotransfer/utils"
-	"github.com/zjyl1994/picotransfer/vars"
+	"github.com/zjyl1994/arkdrop/service"
+	"github.com/zjyl1994/arkdrop/utils"
+	"github.com/zjyl1994/arkdrop/vars"
 )
 
 var parcelService service.ParcelService

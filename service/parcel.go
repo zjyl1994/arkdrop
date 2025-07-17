@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/zjyl1994/picotransfer/vars"
+	"github.com/zjyl1994/arkdrop/vars"
 	"gorm.io/gorm"
 )
 

@@ -1,4 +1,4 @@
-module github.com/zjyl1994/picotransfer
+module github.com/zjyl1994/arkdrop
 
 go 1.24.4
 

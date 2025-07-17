@@ -9,35 +9,35 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	gorm_logrus "github.com/onrik/gorm-logrus"
 	"github.com/sirupsen/logrus"
-	"github.com/zjyl1994/picotransfer/server"
-	"github.com/zjyl1994/picotransfer/service"
-	"github.com/zjyl1994/picotransfer/utils"
-	"github.com/zjyl1994/picotransfer/vars"
+	"github.com/zjyl1994/arkdrop/server"
+	"github.com/zjyl1994/arkdrop/service"
+	"github.com/zjyl1994/arkdrop/utils"
+	"github.com/zjyl1994/arkdrop/vars"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func Start() (err error) {
-	vars.DebugMode, _ = strconv.ParseBool(os.Getenv("PICOTRANSFER_DEBUG"))
+	vars.DebugMode, _ = strconv.ParseBool(os.Getenv("ARKDROP_DEBUG"))
 	if vars.DebugMode {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debugln("PicoTransfer in DEBUG mode.")
 	}
-	vars.ListenAddr = utils.COALESCE(os.Getenv("PICOTRANSFER_LISTEN"), ":10325")
-	vars.DataDir = os.Getenv("PICOTRANSFER_DATA_DIR")
+	vars.ListenAddr = utils.COALESCE(os.Getenv("ARKDROP_LISTEN"), ":10325")
+	vars.DataDir = os.Getenv("ARKDROP_DATA_DIR")
 	err = os.MkdirAll(filepath.Join(vars.DataDir, "files"), 0755)
 	if err != nil {
 		return err
 	}
-	vars.Password = os.Getenv("PICOTRANSFER_PASSWORD")
+	vars.Password = os.Getenv("ARKDROP_PASSWORD")
 
-	autoExpireDuration := utils.COALESCE(os.Getenv("PICOTRANSFER_AUTO_EXPIRE"), "1w")
+	autoExpireDuration := utils.COALESCE(os.Getenv("ARKDROP_AUTO_EXPIRE"), "1w")
 	vars.AutoExpire, err = utils.ParseDuration(autoExpireDuration)
 	if err != nil {
 		return err
 	}
 
-	dbFile := filepath.Join(vars.DataDir, "picotransfer.db")
+	dbFile := filepath.Join(vars.DataDir, "arkdrop.db")
 	vars.DB, err = gorm.Open(sqlite.Open(dbFile), &gorm.Config{
 		Logger: gorm_logrus.New(),
 	})
