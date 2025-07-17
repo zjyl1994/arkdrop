@@ -23,7 +23,7 @@ func Start() (err error) {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debugln("ArkDrop in DEBUG mode.")
 	}
-	vars.ListenAddr = utils.COALESCE(os.Getenv("ARKDROP_LISTEN"), ":10325")
+	vars.ListenAddr = utils.COALESCE(os.Getenv("ARKDROP_LISTEN"), ":8080")
 	vars.DataDir = os.Getenv("ARKDROP_DATA_DIR")
 	err = os.MkdirAll(filepath.Join(vars.DataDir, "files"), 0755)
 	if err != nil {
