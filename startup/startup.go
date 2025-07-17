@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 	gorm_logrus "github.com/onrik/gorm-logrus"
@@ -52,6 +53,21 @@ func Start() (err error) {
 	if err != nil {
 		return err
 	}
+	go func() {
+		doClean := func() {
+			var service service.ParcelService
+			err := service.CleanExpired()
+			if err != nil {
+				logrus.Errorln("Clean expired parcels failed:", err)
+			}
+		}
 
+		doClean()
+
+		ticker := time.Tick(vars.AUTO_EXPIRE_INTERVAL)
+		for range ticker {
+			doClean()
+		}
+	}()
 	return server.Run(vars.ListenAddr)
 }

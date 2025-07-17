@@ -17,5 +17,6 @@ var (
 )
 
 const (
-	JWT_TOKEN_EXPIRE = 24 * 30 * time.Hour
+	JWT_TOKEN_EXPIRE     = 24 * 30 * time.Hour
+	AUTO_EXPIRE_INTERVAL = time.Hour
 )

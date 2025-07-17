@@ -3,6 +3,7 @@ package service
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/zjyl1994/picotransfer/vars"
 	"gorm.io/gorm"
@@ -82,4 +83,19 @@ func (ParcelService) List() ([]Parcel, error) {
 
 func (ParcelService) Favorite(id int) error {
 	return vars.DB.Model(&Parcel{}).Where("id = ?", id).Update("favorite", gorm.Expr("NOT favorite")).Error
+}
+
+func (s ParcelService) CleanExpired() error {
+	var expiredParcels []Parcel
+	err := vars.DB.Where("favorite = ?", false).Where("created_at < ?", time.Now().Add(-vars.AutoExpire).Unix()).Find(&expiredParcels).Error
+	if err != nil {
+		return err
+	}
+	for _, parcel := range expiredParcels {
+		err := s.Delete(parcel.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
