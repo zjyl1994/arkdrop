@@ -21,7 +21,7 @@ func Start() (err error) {
 	vars.DebugMode, _ = strconv.ParseBool(os.Getenv("ARKDROP_DEBUG"))
 	if vars.DebugMode {
 		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debugln("PicoTransfer in DEBUG mode.")
+		logrus.Debugln("ArkDrop in DEBUG mode.")
 	}
 	vars.ListenAddr = utils.COALESCE(os.Getenv("ARKDROP_LISTEN"), ":10325")
 	vars.DataDir = os.Getenv("ARKDROP_DATA_DIR")

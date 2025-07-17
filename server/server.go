@@ -14,6 +14,7 @@ func Run(listen string) error {
 		BodyLimit:             10 * 1024 * 1024,
 	})
 	apiGroup := app.Group("/api")
+	apiGroup.Post("/login", LoginHandler)
 	apiGroup.Post("/create", CreateParcel)
 	apiGroup.Post("/delete", DeleteParcel)
 	apiGroup.Post("/clean", CleanParcel)
@@ -24,6 +25,6 @@ func Run(listen string) error {
 		MaxAge:    int(vars.AutoExpire.Seconds()),
 		ByteRange: true,
 	})
-	logrus.Infoln("PicoTransfer running on", listen)
+	logrus.Infoln("ArkDrop running on", listen)
 	return app.Listen(listen)
 }
