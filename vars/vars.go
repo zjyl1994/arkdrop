@@ -1,14 +1,20 @@
 package vars
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 var (
 	ListenAddr string
+	DataDir    string
 	DebugMode  bool
 	Password   string
 	AutoExpire time.Duration
+	DB         *gorm.DB
 )
 
 const (
-	TOKEN_EXPIRE = 24 * 30 * time.Hour
+	JWT_TOKEN_EXPIRE = 24 * 30 * time.Hour
 )
