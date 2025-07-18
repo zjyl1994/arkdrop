@@ -31,6 +31,7 @@ func LoginHandler(c *fiber.Ctx) error {
 		Name:    "droptoken",
 		Value:   tokenString,
 		Expires: exp,
+		MaxAge:  int(vars.JWT_TOKEN_EXPIRE.Seconds()),
 	})
 	return c.SendString(tokenString)
 }
