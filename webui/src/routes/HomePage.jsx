@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import './HomePage.css'; // Import the CSS file
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -8,7 +9,7 @@ const HomePage = () => {
   const [message, setMessage] = useState('');
   const [listData, setListData] = useState([]);
 
-  // 页面加载时获取已有数据
+  // Fetch existing data on page load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -17,58 +18,66 @@ const HomePage = () => {
         });
         setListData(res.data);
       } catch (error) {
-        console.error('获取数据失败', error);
+        console.error('Failed to fetch data', error);
       }
     };
 
     fetchData();
 
-    // WebSocket 连接
-    wsRef.current = new WebSocket(`ws://${window.location.host}/api/ws`);
+    // WebSocket connection
+    if (!wsRef.current) {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsRef.current = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws`);
 
-    wsRef.current.onopen = () => {
-      console.log('WebSocket 连接成功');
-    };
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connection established');
+      };
 
-    wsRef.current.onmessage = (event) => {
-      console.log('收到 WebSocket 消息:', event.data);
-      if (event.data === 'list_change') {
-        fetchData(); // 刷新列表
-      }
-    };
+      wsRef.current.onmessage = (event) => {
+        console.log('Received WebSocket message:', event.data);
+        if (event.data === 'list_change') {
+          fetchData(); // Refresh list
+        }
+      };
 
-    wsRef.current.onerror = (error) => {
-      console.error('WebSocket 错误:', error);
-    };
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
 
-    wsRef.current.onclose = () => {
-      console.log('WebSocket 连接关闭');
-    };
+      wsRef.current.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
+    }
 
-    // 组件卸载时关闭 WebSocket 连接
+
+
+    // Close WebSocket connection on component unmount
     return () => {
-      wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, []);
 
   const listChangeAction = async () => {
-    // 通过 WebSocket 发送消息
+    // Send message via WebSocket
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send('list_change');
     } else {
-      console.warn('WebSocket 未连接或已关闭，无法发送消息。');
+      console.warn('WebSocket is not connected or closed, cannot send message.');
     }
     const res = await axios.get('/api/list', {
       withCredentials: true,
     });
     setListData(res.data);
   }
-  // 提交表单
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!content && files.length === 0) {
-      setMessage('请填写内容或选择文件');
+      setMessage('Please fill in content or select a file');
       return;
     }
 
@@ -84,52 +93,52 @@ const HomePage = () => {
         withCredentials: true,
       });
 
-      setMessage('提交成功: ' + JSON.stringify(response.data));
+      setMessage('Submission successful: ' + JSON.stringify(response.data));
 
       listChangeAction();
 
-      // 清空表单
+      // Clear form
       setContent('');
       setFiles([]);
     } catch (error) {
-      setMessage('提交失败: ' + (error.response?.data?.message || error.message));
+      setMessage('Submission failed: ' + (error.response?.data?.message || error.message));
     }
   };
 
-  // 清空所有数据
+  // Clear all data
   const handleClean = async () => {
-    if (window.confirm('确定要清空所有数据吗？')) {
+    if (window.confirm('Are you sure you want to clear all data?')) {
       try {
         await axios.post('/api/clean', {}, {
           withCredentials: true,
         });
-        setMessage('数据已清空');
+        setMessage('Data cleared');
 
         listChangeAction();
       } catch (error) {
-        setMessage('清空失败: ' + error.message);
+        setMessage('Clear failed: ' + error.message);
       }
     }
   };
 
-  // 删除单条数据
+  // Delete single data item
   const handleDelete = async (id) => {
-    if (window.confirm('确定要删除这条数据吗？')) {
+    if (window.confirm('Are you sure you want to delete this item?')) {
       try {
         await axios.post(`/api/delete?id=${id}`, {}, {
           withCredentials: true,
         });
 
-        setMessage('数据已删除');
+        setMessage('Data deleted');
 
         listChangeAction();
       } catch (error) {
-        setMessage('删除失败: ' + error.message);
+        setMessage('Delete failed: ' + error.message);
       }
     }
   };
 
-  // 加星操作
+  // Favorite action
   const handleFavorite = async (id) => {
     try {
       await axios.post(`/api/favorite?id=${id}`, {}, {
@@ -138,60 +147,56 @@ const HomePage = () => {
 
       listChangeAction();
     } catch (error) {
-      setMessage('操作失败: ' + error.message);
+      setMessage('Operation failed: ' + error.message);
     }
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>创建内容</h2>
+    <div className="container">
+      <h2 className="section-title">创建内容</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '10px' }}>
+        <div className="form-group">
           <label>
             内容：
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              style={{ width: '100%', height: '100px' }}
             />
           </label>
         </div>
 
-        <div style={{ marginBottom: '10px' }}>
+        <div className="form-group">
           <label>
             选择文件：
             <input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
           </label>
         </div>
 
-        <button type="submit">发送</button>
-        <button type="button" onClick={handleClean} style={{ marginLeft: '10px', color: 'red' }}>清空所有</button>
+        <div className="button-group">
+          <button type="submit">发送</button>
+          <button type="button" onClick={handleClean} className="clean-button">清空所有</button>
+        </div>
       </form>
 
-      {message && <p style={{ marginTop: '20px', color: 'blue' }}>{message}</p>}
+      {message && <p className="message">{message}</p>}
 
-      <hr style={{ margin: '40px 0' }} />
+      <hr className="divider" />
 
-      <h2>已有内容列表</h2>
+      <h2 className="section-title">已有内容列表</h2>
       {listData.length === 0 ? (
-        <p>暂无数据</p>
+        <p className="no-data-message">暂无数据</p>
       ) : (
         listData.map((item) => (
-          <div key={item.id} style={{
-            marginBottom: '30px',
-            border: '1px solid #ccc',
-            padding: '15px',
-            borderRadius: '8px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div key={item.id} className="list-item">
+            <div className="list-item-header">
               <button
                 type="button"
                 onClick={() => handleFavorite(item.id)}
-                style={{ marginRight: '10px' }}
+                className="favorite-button"
               >
                 {item.favorite ? '★' : '☆'}
               </button>
-              <button type="button" onClick={() => handleDelete(item.id)} style={{ color: 'red' }}>
+              <button type="button" onClick={() => handleDelete(item.id)} className="delete-button">
                 删除
               </button>
             </div>
