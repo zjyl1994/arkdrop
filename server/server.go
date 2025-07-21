@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/gofiber/websocket/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/zjyl1994/arkdrop/vars"
 	"github.com/zjyl1994/arkdrop/webui"
@@ -25,6 +26,7 @@ func Run(listen string) error {
 	apiGroup.Post("/clean", CleanParcel)
 	apiGroup.Get("/list", ListParcel)
 	apiGroup.Post("/favorite", FavoriteParcel)
+	apiGroup.Get("/ws", websocket.New(WsHandler))
 
 	app.Use("/files", AuthMiddleware())
 	app.Static("/files", filepath.Join(vars.DataDir, "files"), fiber.Static{
