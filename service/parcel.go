@@ -74,7 +74,7 @@ func (ParcelService) Clean() error {
 func (ParcelService) List() ([]Parcel, error) {
 	var parcels []Parcel
 	err := vars.DB.Preload("Attachments").Order("CASE WHEN favorite = 1 THEN 0 ELSE 1 END").
-		Order("created_at DESC").Find(&parcels).Error
+		Order("updated_at DESC").Find(&parcels).Error
 	if err != nil {
 		return nil, err
 	}

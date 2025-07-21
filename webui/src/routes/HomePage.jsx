@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const HomePage = () => {
+  const wsRef = useRef(null);
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [message, setMessage] = useState('');
@@ -21,8 +22,47 @@ const HomePage = () => {
     };
 
     fetchData();
+
+    // WebSocket 连接
+    wsRef.current = new WebSocket(`ws://${window.location.host}/api/ws`);
+
+    wsRef.current.onopen = () => {
+      console.log('WebSocket 连接成功');
+    };
+
+    wsRef.current.onmessage = (event) => {
+      console.log('收到 WebSocket 消息:', event.data);
+      if (event.data === 'list_change') {
+        fetchData(); // 刷新列表
+      }
+    };
+
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket 错误:', error);
+    };
+
+    wsRef.current.onclose = () => {
+      console.log('WebSocket 连接关闭');
+    };
+
+    // 组件卸载时关闭 WebSocket 连接
+    return () => {
+      wsRef.current.close();
+    };
   }, []);
 
+  const listChangeAction = async () => {
+    // 通过 WebSocket 发送消息
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send('list_change');
+    } else {
+      console.warn('WebSocket 未连接或已关闭，无法发送消息。');
+    }
+    const res = await axios.get('/api/list', {
+      withCredentials: true,
+    });
+    setListData(res.data);
+  }
   // 提交表单
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,11 +86,7 @@ const HomePage = () => {
 
       setMessage('提交成功: ' + JSON.stringify(response.data));
 
-      // 刷新列表
-      const res = await axios.get('/api/list', {
-        withCredentials: true,
-      });
-      setListData(res.data);
+      listChangeAction();
 
       // 清空表单
       setContent('');
@@ -67,8 +103,9 @@ const HomePage = () => {
         await axios.post('/api/clean', {}, {
           withCredentials: true,
         });
-        setListData([]);
         setMessage('数据已清空');
+
+        listChangeAction();
       } catch (error) {
         setMessage('清空失败: ' + error.message);
       }
@@ -83,8 +120,9 @@ const HomePage = () => {
           withCredentials: true,
         });
 
-        setListData(listData.filter(item => item.id !== id));
         setMessage('数据已删除');
+
+        listChangeAction();
       } catch (error) {
         setMessage('删除失败: ' + error.message);
       }
@@ -98,11 +136,7 @@ const HomePage = () => {
         withCredentials: true,
       });
 
-      setListData(
-        listData.map(item =>
-          item.id === id ? { ...item, favorite: !item.favorite } : item
-        )
-      );
+      listChangeAction();
     } catch (error) {
       setMessage('操作失败: ' + error.message);
     }
@@ -165,7 +199,7 @@ const HomePage = () => {
             {item.content ? <p><strong>内容:</strong> {item.content}</p> : null}
 
             {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
-              <div style={{ marginBottom: '10px' }}>
+              <div style={{ marginBottom: '10px' }} key={file.id}>
                 <img
                   src={`/files/${file.file_path}`}
                   alt={file.file_name}
