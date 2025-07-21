@@ -53,7 +53,7 @@ const HomePage = () => {
 
     // Close WebSocket connection on component unmount
     return () => {
-      if (wsRef.current) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
         wsRef.current = null;
       }
