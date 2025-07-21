@@ -31,21 +31,16 @@ func WsHandler(c *websocket.Conn) {
 	addClientToRoom(client)
 
 	defer func() {
-		// 客户端断开连接时移除
 		removeClientFromRoom(client)
 		_ = c.Close()
 	}()
 
-	logrus.Debugln("客户端加入频道: ", channel)
+	logrus.Debugln("Websocket client join: ", channel)
 
 	for {
 		msgType, msg, err := c.ReadMessage()
 		if err != nil {
-			if websocket.IsCloseError(err) {
-				logrus.Debugln("连接断开: ", err)
-			} else {
-				logrus.Errorln("连接出错: ", err)
-			}
+			logrus.Debugln("Websocket link error or disconnect: ", err)
 			break
 		}
 
@@ -86,7 +81,7 @@ func broadcastToRoom(channel string, msgType int, message []byte, sender *Client
 			continue
 		}
 		if err := client.conn.WriteMessage(msgType, message); err != nil {
-			logrus.Errorln("发送消息失败: ", err)
+			logrus.Errorln("Websocket send message failed: ", err)
 			_ = client.conn.Close()
 			delete(rooms[channel], client)
 		}
