@@ -150,22 +150,29 @@ const HomePage = () => {
             borderRadius: '8px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>ID: {item.id}</h3>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => handleFavorite(item.id)}
-                  style={{ marginRight: '10px' }}
-                >
-                  {item.favorite ? '★' : '☆'}
-                </button>
-                <button type="button" onClick={() => handleDelete(item.id)} style={{ color: 'red' }}>
-                  删除
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleFavorite(item.id)}
+                style={{ marginRight: '10px' }}
+              >
+                {item.favorite ? '★' : '☆'}
+              </button>
+              <button type="button" onClick={() => handleDelete(item.id)} style={{ color: 'red' }}>
+                删除
+              </button>
             </div>
 
-            <p><strong>内容:</strong> {item.content || '无'}</p>
+            {item.content ? <p><strong>内容:</strong> {item.content}</p> : null}
+
+            {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
+              <div style={{ marginBottom: '10px' }}>
+                <img
+                  src={`/files/${file.file_path}`}
+                  alt={file.file_name}
+                  style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+            )}
 
             {item.attachments.length > 0 && (
               <>
