@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Container, Form, Button, Alert, Table, Card } from 'react-bootstrap';
+import { Trash, Star } from 'react-bootstrap-icons';
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -151,29 +152,34 @@ const HomePage = () => {
     }
   };
 
+  const handleLogout = async () => {
+    Cookies.remove('droptoken');
+    window.location.reload();
+  }
+
   return (
     <Container>
-      <Form onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
-          <Form.Control
-            as="textarea"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-        </Form.Group>
+      <div className="mb-3">
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Control
+              as="textarea"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+          </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Control type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
-        </Form.Group>
-        <div className="d-flex justify-content-between align-items-center">
-          <Button variant="primary" type="submit" className="me-2">发送</Button>
-          <Button variant="danger" type="button" onClick={handleClean}>清空所有</Button>
-        </div>
-      </Form>
+          <Form.Group className="mb-3">
+            <Form.Control type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
+          </Form.Group>
+          <div className="d-flex justify-content-between align-items-center">
+            <Button variant="primary" type="submit" className="me-2">发送</Button>
+            <Button variant="danger" type="button" onClick={handleClean}>清空所有</Button>
+          </div>
+        </Form>
 
+      </div>
       {message && <Alert variant="info" className="mt-3">{message}</Alert>}
-
-      <hr className="my-4" />
 
       {listData.length === 0 ? (
         <Alert variant="info">暂无数据</Alert>
@@ -182,17 +188,22 @@ const HomePage = () => {
           <Card key={item.id} className="mb-3">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
-                <Button
-                  variant="outline-warning"
-                  size="sm"
-                  onClick={() => handleFavorite(item.id)}
-                  className="me-2"
-                >
-                  {item.favorite ? '★' : '☆'}
-                </Button>
-                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(item.id)}>
-                  删除
-                </Button>
+                <div>
+                  {new Date(item.created_at * 1000).toLocaleString()}
+                </div>
+                <div>
+                  <Button
+                    variant={item.favorite ? 'warning' : 'outline-warning'}
+                    size="sm"
+                    onClick={() => handleFavorite(item.id)}
+                    className="me-2"
+                  >
+                    <Star />
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
+                    <Trash />
+                  </Button>
+                </div>
               </div>
 
               {item.content ? <pre>{item.content}</pre> : null}
@@ -208,8 +219,7 @@ const HomePage = () => {
               )}
 
               {item.attachments.length > 0 && (
-                <>
-                  <Card.Subtitle className="mb-2 text-muted">附件:</Card.Subtitle>
+
                   <ul className="list-unstyled">
                     {item.attachments.map((file) => (
                       <li key={file.id}>
@@ -224,15 +234,14 @@ const HomePage = () => {
                       </li>
                     ))}
                   </ul>
-                </>
               )}
-              <Card.Footer className="text-muted">
-                创建时间: {new Date(item.created_at*1000).toLocaleString()}
-              </Card.Footer>
             </Card.Body>
           </Card>
         ))
       )}
+      <div className="d-grid gap-2 mb-3">
+        <Button onClick={handleLogout} variant="danger" type="button" size="lg">退出登录</Button>
+      </div>
     </Container>
   );
 };
