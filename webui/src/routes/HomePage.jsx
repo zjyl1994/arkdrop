@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Container, Form, Button, Alert, Table, Card } from 'react-bootstrap';
+import { Container, Form, Button, Alert, ListGroup, Card, Image } from 'react-bootstrap';
 import { Trash, Star } from 'react-bootstrap-icons';
+import dayjs from 'dayjs';
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -187,9 +188,9 @@ const HomePage = () => {
         listData.map((item) => (
           <Card key={item.id} className="mb-3">
             <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
+              <Card.Title className="d-flex justify-content-between align-items-center">
                 <div>
-                  {new Date(item.created_at * 1000).toLocaleString()}
+                  {dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
                 </div>
                 <div>
                   <Button
@@ -204,38 +205,33 @@ const HomePage = () => {
                     <Trash />
                   </Button>
                 </div>
-              </div>
+              </Card.Title>
 
               {item.content ? <pre>{item.content}</pre> : null}
 
               {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
-                <div style={{ marginBottom: '10px' }} key={file.id}>
-                  <Card.Img
-                    src={`/files/${file.file_path}`}
-                    alt={file.file_name}
-                    style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
-                  />
-                </div>
-              )}
-
-              {item.attachments.length > 0 && (
-
-                  <ul className="list-unstyled">
-                    {item.attachments.map((file) => (
-                      <li key={file.id}>
-                        <a
-                          href={`/files/${file.file_path}`}
-                          download={file.file_name}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {file.file_name}（{Math.round(file.file_size / 1024)} KB）
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                <Image
+                  key={file.id}
+                  src={`/files/${file.file_path}`}
+                  alt={file.file_name}
+                  className="my-2"
+                  rounded fluid />
               )}
             </Card.Body>
+            {item.attachments.length > 0 && (
+              <ListGroup className="list-group-flush">
+                {item.attachments.map((file) => (
+                  <ListGroup.Item key={file.id}> <a
+                    href={`/files/${file.file_path}`}
+                    download={file.file_name}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {file.file_name}（{Math.round(file.file_size / 1024)} KB）
+                  </a></ListGroup.Item>
+                ))}
+              </ListGroup>
+            )}
           </Card>
         ))
       )}
