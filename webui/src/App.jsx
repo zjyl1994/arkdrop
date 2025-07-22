@@ -4,12 +4,14 @@ import HomePage from './routes/HomePage';
 import LoginPage from './routes/LoginPage';
 import PrivateRoute from './routes/PrivateRoute';
 import AppNavBar from './compoments/AppNavBar';
+import CssBaseline from '@mui/material/CssBaseline';
 
 function App() {
   return (
     <>
+      <CssBaseline />
       <BrowserRouter>
-        <AppNavBar/>
+        <AppNavBar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
