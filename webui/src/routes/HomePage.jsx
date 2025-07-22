@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import './HomePage.css'; // Import the CSS file
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -153,9 +152,9 @@ const HomePage = () => {
 
   return (
     <div className="container">
-      <h2 className="section-title">创建内容</h2>
+      <h2>创建内容</h2>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
+        <div>
           <label>
             内容：
             <textarea
@@ -165,43 +164,42 @@ const HomePage = () => {
           </label>
         </div>
 
-        <div className="form-group">
+        <div>
           <label>
             选择文件：
             <input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
           </label>
         </div>
 
-        <div className="button-group">
+        <div>
           <button type="submit">发送</button>
-          <button type="button" onClick={handleClean} className="clean-button">清空所有</button>
+          <button type="button" onClick={handleClean}>清空所有</button>
         </div>
       </form>
 
-      {message && <p className="message">{message}</p>}
+      {message && <p>{message}</p>}
 
-      <hr className="divider" />
+      <hr/>
 
-      <h2 className="section-title">已有内容列表</h2>
+      <h2>已有内容列表</h2>
       {listData.length === 0 ? (
-        <p className="no-data-message">暂无数据</p>
+        <p>暂无数据</p>
       ) : (
         listData.map((item) => (
-          <div key={item.id} className="list-item">
-            <div className="list-item-header">
+          <div key={item.id}>
+            <div>
               <button
                 type="button"
                 onClick={() => handleFavorite(item.id)}
-                className="favorite-button"
               >
                 {item.favorite ? '★' : '☆'}
               </button>
-              <button type="button" onClick={() => handleDelete(item.id)} className="delete-button">
+              <button type="button" onClick={() => handleDelete(item.id)}>
                 删除
               </button>
             </div>
 
-            {item.content ? <p><strong>内容:</strong> {item.content}</p> : null}
+            {item.content ? <pre>{item.content}</pre> : null}
 
             {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
               <div style={{ marginBottom: '10px' }} key={file.id}>

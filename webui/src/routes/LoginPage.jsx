@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './LoginPage.css'; // Import the CSS file
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
@@ -32,10 +31,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
+    <div className="container">
       <h2>请输入密码登录</h2>
       <form onSubmit={handleLogin}>
-        <div className="form-group">
+        <div>
           <label>
             密码：
             <input
@@ -46,10 +45,9 @@ export default function LoginPage() {
             />
           </label>
         </div>
-        {error && <p className="error-message">{error}</p>}
+        {error && <p>{error}</p>}
         <button
           type="submit"
-          className="login-button"
         >
           登录
         </button>

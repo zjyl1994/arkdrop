@@ -11,6 +11,9 @@ importers:
       axios:
         specifier: ^1.10.0
         version: 1.10.0
+      bamboo.css:
+        specifier: ^1.4.0
+        version: 1.4.0
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -535,6 +538,9 @@ packages:
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+
+  bamboo.css@1.4.0:
+    resolution: {integrity: sha512-6jiEzRZ0n1GfbLuw2Tf37cJd+lcYjFxl43VH78+sixMnKFG3YorlvC95kddqYtWeMK6zmBV4PrPEkwVf4vXwgw==}
 
   brace-expansion@1.1.12:
     resolution: {integrity: sha512-9T9UjW3r0UW5c1Q7GTwllptXwhvYmEzFhzMfZ9H7FQWt+uZePjZPjBP/W1ZEyZ1twGWom5/56TF4lPcqjnDHcg==}
@@ -1472,6 +1478,8 @@ snapshots:
       - debug
 
   balanced-match@1.0.2: {}
+
+  bamboo.css@1.4.0: {}
 
   brace-expansion@1.1.12:
     dependencies:
