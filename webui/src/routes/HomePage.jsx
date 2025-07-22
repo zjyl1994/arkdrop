@@ -10,6 +10,7 @@ const HomePage = () => {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [listData, setListData] = useState([]);
+  const [fileInputKey, setFileInputKey] = useState(Date.now());
 
   // Fetch existing data on page load
   useEffect(() => {
@@ -102,6 +103,7 @@ const HomePage = () => {
       // Clear form
       setContent('');
       setFiles([]);
+      setFileInputKey(Date.now());
     } catch (error) {
       toast('Submission failed: ' + (error.response?.data?.message || error.message));
     }
@@ -171,7 +173,12 @@ const HomePage = () => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Control type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
+            <Form.Control
+              type="file"
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files))}
+              key={fileInputKey}
+            />
           </Form.Group>
           <div className="d-flex justify-content-between align-items-center">
             <Button variant="primary" type="submit" className="me-2">发送</Button>
@@ -179,7 +186,7 @@ const HomePage = () => {
           </div>
         </Form>
       </div>
-    
+
       {listData.length === 0 ? (
         <Alert variant="info">暂无数据</Alert>
       ) : (
@@ -234,7 +241,7 @@ const HomePage = () => {
         ))
       )}
       <div className="d-grid gap-2 mb-3">
-        <Button onClick={handleLogout} variant="danger" type="button" size="lg">退出登录</Button>
+        <Button onClick={handleLogout} variant="outline-danger" type="button" size="lg">退出登录</Button>
       </div>
     </Container>
   );
