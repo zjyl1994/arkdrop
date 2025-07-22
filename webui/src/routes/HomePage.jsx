@@ -1,9 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Container, Form, Button, Alert, ListGroup, Card, Image } from 'react-bootstrap';
-import { Trash, Star } from 'react-bootstrap-icons';
 import dayjs from 'dayjs';
 import { toast } from 'react-toastify';
+import Container from '@mui/material/Container';
+import TextareaAutosize from '@mui/material/TextareaAutosize';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import { styled } from '@mui/material/styles';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import Alert from '@mui/material/Alert';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import ImageListItem from '@mui/material/ImageListItem';
+import ImageList from '@mui/material/ImageList';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Download from '@mui/icons-material/Download';
+
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
+});
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -77,8 +106,6 @@ const HomePage = () => {
   }
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
     if (!content && files.length === 0) {
       toast('Please fill in content or select a file');
       return;
@@ -155,94 +182,99 @@ const HomePage = () => {
     }
   };
 
-  const handleLogout = async () => {
-    Cookies.remove('droptoken');
-    window.location.reload();
-  }
-
   return (
     <Container>
-      <div className="mb-3">
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Control
-              as="textarea"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Control
+      <Box width="100%">
+        <TextareaAutosize
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          width="100%"
+        />
+        <ButtonGroup variant="contained">
+          <Button
+            component="label"
+            role={undefined}
+            variant="contained"
+            tabIndex={-1}
+            startIcon={<CloudUploadIcon />}
+          >
+            {files.length > 0 ? `${files.length} Selected` : "Upload files"}
+            <VisuallyHiddenInput
               type="file"
-              multiple
               onChange={(e) => setFiles(Array.from(e.target.files))}
               key={fileInputKey}
+              multiple
             />
-          </Form.Group>
-          <div className="d-flex justify-content-between align-items-center">
-            <Button variant="primary" type="submit" className="me-2">发送</Button>
-            <Button variant="danger" type="button" onClick={handleClean}>清空所有</Button>
-          </div>
-        </Form>
-      </div>
+          </Button>
+          <Button onClick={handleSubmit}>Send</Button>
+          <Button onClick={handleClean}>Clean</Button>
+        </ButtonGroup>
+      </Box>
 
       {listData.length === 0 ? (
-        <Alert variant="info">暂无数据</Alert>
+        <Alert severity="info">暂无数据</Alert>
       ) : (
-        listData.map((item) => (
-          <Card key={item.id} className="mb-3">
-            <Card.Body>
-              <Card.Title className="d-flex justify-content-between align-items-center">
-                <div>
+        listData.map((item) => {
+          const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
+          return (
+            <Card key={item.id}>
+              <CardContent>
+                <Typography>
                   {dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                </div>
-                <div>
+                </Typography>
+                <ButtonGroup variant="contained">
                   <Button
-                    variant={item.favorite ? 'warning' : 'outline-warning'}
-                    size="sm"
                     onClick={() => handleFavorite(item.id)}
-                    className="me-2"
                   >
-                    <Star />
+                    {item.favorite ? 'Starred' : 'Star'}
                   </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-                    <Trash />
+                  <Button onClick={() => handleDelete(item.id)}>
+                    Trash
                   </Button>
-                </div>
-              </Card.Title>
+                </ButtonGroup>
 
-              {item.content ? <pre>{item.content}</pre> : null}
+                {item.content ? <pre>{item.content}</pre> : null}
 
-              {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
-                <Image
-                  key={file.id}
-                  src={`/files/${file.file_path}`}
-                  alt={file.file_name}
-                  className="my-2"
-                  rounded fluid />
-              )}
-            </Card.Body>
-            {item.attachments.length > 0 && (
-              <ListGroup className="list-group-flush">
-                {item.attachments.map((file) => (
-                  <ListGroup.Item key={file.id}> <a
-                    href={`/files/${file.file_path}`}
-                    download={file.file_name}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {file.file_name}（{Math.round(file.file_size / 1024)} KB）
-                  </a></ListGroup.Item>
-                ))}
-              </ListGroup>
-            )}
-          </Card>
-        ))
+                {imageList.length > 0 &&
+                  <ImageList cols={3} rowHeight={164} variant="masonry" >
+                    {imageList.map(file =>
+                      <ImageListItem key={item.img}>
+                        <img
+                          key={file.id}
+                          src={`/files/${file.file_path}`}
+                          alt={file.file_name}
+                          loading="lazy"
+                        />
+                      </ImageListItem>
+                    )}
+                  </ImageList>
+                }
+                {item.attachments.length > 0 && (
+                  <List>
+                    {item.attachments.map((file) => (
+                      <ListItem key={file.id}>
+                        <ListItemButton>
+                          <ListItemText primary={`${file.file_name}（${Math.round(file.file_size / 1024)} KB）`} />
+                          <ListItemIcon>
+                            <a
+                              href={`/files/${file.file_path}`}
+                              download={file.file_name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Download />
+                            </a>
+                          </ListItemIcon>
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })
       )}
-      <div className="d-grid gap-2 mb-3">
-        <Button onClick={handleLogout} variant="outline-danger" type="button" size="lg">退出登录</Button>
-      </div>
     </Container>
   );
 };
