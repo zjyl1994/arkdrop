@@ -7,9 +7,10 @@ import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 
 export default function AppNavBar() {
+    const navigate = useNavigate();
     const handleLogout = async () => {
         Cookies.remove('droptoken');
-        useNavigate('/login');
+        navigate('/login');
     }
     return (
         <Box sx={{ flexGrow: 1 }}>

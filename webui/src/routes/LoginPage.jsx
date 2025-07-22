@@ -4,15 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import Alert  from '@mui/material/Alert';
+import Alert from '@mui/material/Alert';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [errMsg, setErrMsg] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     try {
       const response = await axios.post('/api/login', {
         password: password
@@ -28,28 +29,64 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err) {
-      setErrMsg('登录失败，请检查密码是否正确');
+      setErrMsg('Login failed,check you password.');
       console.error(err);
+    }
+  };
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleLogin();
     }
   };
 
   return (
-    <Box
-      component="form"
-      sx={{ '& > :not(style)': { m: 1, width: '25ch' } }}
-      noValidate
-      autoComplete="off"
-      onSubmit={handleLogin}
-    >
-      {errMsg && <Alert variant="filled" severity="error">{errMsg}</Alert>}
-      <TextField
-        variant="filled"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <Button>LOGIN</Button>
-    </Box>
+    <Container maxWidth="xs" sx={{ mt: 10 }}>
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        padding={4}
+        boxShadow={3}
+        bgcolor="background.paper"
+        borderRadius={2}
+      >
+        <Typography variant="h5" gutterBottom>
+          ArkDrop
+        </Typography>
+
+        <TextField
+          label="Password"
+          type="password"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+        />
+
+        {errMsg && (
+          <Box width="100%">
+            <Alert severity="error">
+              {errMsg}
+            </Alert>
+          </Box>
+        )}
+
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          onClick={handleLogin}
+          sx={{ mt: 2 }}
+        >
+          LOGIN
+        </Button>
+      </Box>
+    </Container>
+
+
   );
 }
