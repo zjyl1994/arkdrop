@@ -3,12 +3,12 @@ import axios from 'axios';
 import { Container, Form, Button, Alert, ListGroup, Card, Image } from 'react-bootstrap';
 import { Trash, Star } from 'react-bootstrap-icons';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
 
 const HomePage = () => {
   const wsRef = useRef(null);
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
-  const [message, setMessage] = useState('');
   const [listData, setListData] = useState([]);
 
   // Fetch existing data on page load
@@ -79,7 +79,7 @@ const HomePage = () => {
     e.preventDefault();
 
     if (!content && files.length === 0) {
-      setMessage('Please fill in content or select a file');
+      toast('Please fill in content or select a file');
       return;
     }
 
@@ -95,7 +95,7 @@ const HomePage = () => {
         withCredentials: true,
       });
 
-      setMessage('Submission successful: ' + JSON.stringify(response.data));
+      toast('Submission successful: ' + JSON.stringify(response.data));
 
       listChangeAction();
 
@@ -103,7 +103,7 @@ const HomePage = () => {
       setContent('');
       setFiles([]);
     } catch (error) {
-      setMessage('Submission failed: ' + (error.response?.data?.message || error.message));
+      toast('Submission failed: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -114,11 +114,11 @@ const HomePage = () => {
         await axios.post('/api/clean', {}, {
           withCredentials: true,
         });
-        setMessage('Data cleared');
+        toast('Data cleared');
 
         listChangeAction();
       } catch (error) {
-        setMessage('Clear failed: ' + error.message);
+        toast('Clear failed: ' + error.message);
       }
     }
   };
@@ -131,11 +131,11 @@ const HomePage = () => {
           withCredentials: true,
         });
 
-        setMessage('Data deleted');
+        toast('Data deleted');
 
         listChangeAction();
       } catch (error) {
-        setMessage('Delete failed: ' + error.message);
+        toast('Delete failed: ' + error.message);
       }
     }
   };
@@ -149,7 +149,7 @@ const HomePage = () => {
 
       listChangeAction();
     } catch (error) {
-      setMessage('Operation failed: ' + error.message);
+      toast('Operation failed: ' + error.message);
     }
   };
 
@@ -178,10 +178,8 @@ const HomePage = () => {
             <Button variant="danger" type="button" onClick={handleClean}>清空所有</Button>
           </div>
         </Form>
-
       </div>
-      {message && <Alert variant="info" className="mt-3">{message}</Alert>}
-
+    
       {listData.length === 0 ? (
         <Alert variant="info">暂无数据</Alert>
       ) : (
