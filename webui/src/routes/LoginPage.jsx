@@ -33,7 +33,6 @@ export default function LoginPage() {
 
   return (
     <Container className="mt-5">
-      <h2 className="mb-4">请输入密码登录</h2>
       <Form onSubmit={handleLogin}>
         <Form.Group className="mb-3" controlId="formBasicPassword">
           <Form.Label>密码：</Form.Label>

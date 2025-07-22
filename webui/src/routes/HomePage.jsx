@@ -195,7 +195,7 @@ const HomePage = () => {
                 </Button>
               </div>
 
-              {item.content ? <Card.Text><pre>{item.content}</pre></Card.Text> : null}
+              {item.content ? <pre>{item.content}</pre> : null}
 
               {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
                 <div style={{ marginBottom: '10px' }} key={file.id}>
