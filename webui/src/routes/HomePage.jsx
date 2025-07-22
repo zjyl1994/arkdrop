@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { Container, Form, Button, Alert, Table, Card } from 'react-bootstrap';
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -151,89 +152,88 @@ const HomePage = () => {
   };
 
   return (
-    <div className="container">
-      <h2>创建内容</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            内容：
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </label>
+    <Container>
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Control
+            as="textarea"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Control type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
+        </Form.Group>
+        <div className="d-flex justify-content-between align-items-center">
+          <Button variant="primary" type="submit" className="me-2">发送</Button>
+          <Button variant="danger" type="button" onClick={handleClean}>清空所有</Button>
         </div>
+      </Form>
 
-        <div>
-          <label>
-            选择文件：
-            <input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files))} />
-          </label>
-        </div>
+      {message && <Alert variant="info" className="mt-3">{message}</Alert>}
 
-        <div>
-          <button type="submit">发送</button>
-          <button type="button" onClick={handleClean}>清空所有</button>
-        </div>
-      </form>
+      <hr className="my-4" />
 
-      {message && <p>{message}</p>}
-
-      <hr/>
-
-      <h2>已有内容列表</h2>
       {listData.length === 0 ? (
-        <p>暂无数据</p>
+        <Alert variant="info">暂无数据</Alert>
       ) : (
         listData.map((item) => (
-          <div key={item.id}>
-            <div>
-              <button
-                type="button"
-                onClick={() => handleFavorite(item.id)}
-              >
-                {item.favorite ? '★' : '☆'}
-              </button>
-              <button type="button" onClick={() => handleDelete(item.id)}>
-                删除
-              </button>
-            </div>
-
-            {item.content ? <pre>{item.content}</pre> : null}
-
-            {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
-              <div style={{ marginBottom: '10px' }} key={file.id}>
-                <img
-                  src={`/files/${file.file_path}`}
-                  alt={file.file_name}
-                  style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
-                />
+          <Card key={item.id} className="mb-3">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <Button
+                  variant="outline-warning"
+                  size="sm"
+                  onClick={() => handleFavorite(item.id)}
+                  className="me-2"
+                >
+                  {item.favorite ? '★' : '☆'}
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(item.id)}>
+                  删除
+                </Button>
               </div>
-            )}
 
-            {item.attachments.length > 0 && (
-              <>
-                <strong>附件:</strong>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {item.attachments.map((file) => (
-                    <li key={file.id}>
-                      <a
-                        href={`/files/${file.file_path}`}
-                        download={file.file_name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {file.file_name}（{Math.round(file.file_size / 1024)} KB）
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
+              {item.content ? <Card.Text><pre>{item.content}</pre></Card.Text> : null}
+
+              {item.attachments.filter(x => x.content_type.startsWith('image/')).map(file =>
+                <div style={{ marginBottom: '10px' }} key={file.id}>
+                  <Card.Img
+                    src={`/files/${file.file_path}`}
+                    alt={file.file_name}
+                    style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
+              )}
+
+              {item.attachments.length > 0 && (
+                <>
+                  <Card.Subtitle className="mb-2 text-muted">附件:</Card.Subtitle>
+                  <ul className="list-unstyled">
+                    {item.attachments.map((file) => (
+                      <li key={file.id}>
+                        <a
+                          href={`/files/${file.file_path}`}
+                          download={file.file_name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {file.file_name}（{Math.round(file.file_size / 1024)} KB）
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <Card.Footer className="text-muted">
+                创建时间: {new Date(item.created_at*1000).toLocaleString()}
+              </Card.Footer>
+            </Card.Body>
+          </Card>
         ))
       )}
-    </div>
+    </Container>
   );
 };
 

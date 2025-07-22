@@ -1,12 +1,16 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './routes/HomePage';
 import LoginPage from './routes/LoginPage';
 import PrivateRoute from './routes/PrivateRoute';
+import { Navbar } from 'react-bootstrap';
 
 function App() {
   return (
     <BrowserRouter>
+      <Navbar bg="light" expand="lg" className="mb-4">
+          <Navbar.Brand>ArkDrop</Navbar.Brand>
+      </Navbar>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route

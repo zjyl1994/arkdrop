@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Container, Form, Button, Alert } from 'react-bootstrap';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
@@ -31,27 +32,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container">
-      <h2>请输入密码登录</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>
-            密码：
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-        </div>
-        {error && <p>{error}</p>}
-        <button
-          type="submit"
-        >
+    <Container className="mt-5">
+      <h2 className="mb-4">请输入密码登录</h2>
+      <Form onSubmit={handleLogin}>
+        <Form.Group className="mb-3" controlId="formBasicPassword">
+          <Form.Label>密码：</Form.Label>
+          <Form.Control
+            type="password"
+            placeholder="输入密码"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Form.Group>
+
+        {error && <Alert variant="danger">{error}</Alert>}
+
+        <Button variant="primary" type="submit">
           登录
-        </button>
-      </form>
-    </div>
+        </Button>
+      </Form>
+    </Container>
   );
 }
