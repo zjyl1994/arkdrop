@@ -9,8 +9,12 @@ import { blue, indigo } from '@mui/material/colors';
 
 const theme = createTheme({
   palette: {
-    primary: indigo,
-    secondary: blue,
+    primary: {
+      main: indigo[500],
+    },
+    secondary: {
+      main: blue[500],
+    },
   },
   typography: {
     fontFamily: 'Roboto, Arial, sans-serif',

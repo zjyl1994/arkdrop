@@ -41,11 +41,11 @@ import ImagePreviewModal from '../compoments/ImagePreviewModal';
 // Format file size with appropriate unit
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 B';
-  
+
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
@@ -259,201 +259,201 @@ const HomePage = () => {
           }
         />
 
-      {/* 添加Modal组件 */}
-      <CreatePostModal
-        open={modalOpen}
-        handleClose={handleCloseModal}
-        onSubmitSuccess={listChangeAction}
-      />
+        {/* 添加Modal组件 */}
+        <CreatePostModal
+          open={modalOpen}
+          handleClose={handleCloseModal}
+          onSubmitSuccess={listChangeAction}
+        />
 
-      {/* 确认对话框 */}
-      <ConfirmDialog
-        open={confirmDialog.open}
-        onClose={handleCloseConfirmDialog}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        confirmColor={confirmDialog.confirmColor || 'primary'}
-      />
+        {/* 确认对话框 */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onClose={handleCloseConfirmDialog}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmColor={confirmDialog.confirmColor || 'primary'}
+        />
 
-      {/* 图片预览模态框 */}
-      <ImagePreviewModal
-        open={imagePreview.open}
-        onClose={handleCloseImagePreview}
-        imageSrc={imagePreview.src}
-        imageAlt={imagePreview.alt}
-      />
+        {/* 图片预览模态框 */}
+        <ImagePreviewModal
+          open={imagePreview.open}
+          onClose={handleCloseImagePreview}
+          imageSrc={imagePreview.src}
+          imageAlt={imagePreview.alt}
+        />
 
-      {listData.length === 0 ? (
-        <Paper
-          elevation={0}
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            py: 8,
-            px: 2,
-            mt: 4,
-            backgroundColor: 'transparent'
-          }}
-        >
-          <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" color="text.primary" gutterBottom>
-            暂无数据
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
-            您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleOpenModal}
+        {listData.length === 0 ? (
+          <Paper
+            elevation={0}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              py: 8,
+              px: 2,
+              mt: 4,
+              backgroundColor: 'transparent'
+            }}
           >
-            添加内容
-          </Button>
-        </Paper>
-      ) : (
-        <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
-          {listData.map((item, index) => {
-            const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
-            const hasContent = item.content && item.content.trim().length > 0;
-            const hasAttachments = item.attachments.length > 0;
-            const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
+            <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h5" color="text.primary" gutterBottom>
+              暂无数据
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
+              您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleOpenModal}
+            >
+              添加内容
+            </Button>
+          </Paper>
+        ) : (
+          <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+            {listData.map((item, index) => {
+              const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
+              const hasContent = item.content && item.content.trim().length > 0;
+              const hasAttachments = item.attachments.length > 0;
+              const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
 
-            return (
-              <React.Fragment key={item.id}>
-                {index > 0 && <Divider variant="inset" component="li" />}
-                <ListItem
-                  alignItems="flex-start"
-                  sx={{ pb: 0 }}
-                >
-                  <ListItemAvatar>
-                    <Avatar>
-                      {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
-                    </Avatar>
-                  </ListItemAvatar>
+              return (
+                <React.Fragment key={item.id}>
+                  {index > 0 && <Divider variant="inset" component="li" />}
+                  <ListItem
+                    alignItems="flex-start"
+                    sx={{ pb: 0 }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar>
+                        {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
+                      </Avatar>
+                    </ListItemAvatar>
 
-                  <ListItemText
-                    sx={{ pr: 2 }}
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Chip
-                            label={dateString}
-                            size="small"
-                            variant="outlined"
-                            sx={{ mr: 1 }}
-                          />
-                        </Box>
-                        <Box>
-                          <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
-                            {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-                          </IconButton>
-                          <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Box>
-                    }
-                    secondary={
-                      <Typography component="div" variant="body2">
-                        {hasContent && (
-                          <Paper
-                            variant="outlined"
-                            sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
-                          >
-                            <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {item.content}
-                            </Typography>
-                          </Paper>
-                        )}
-
-                        {imageList.length > 0 && (
-                          <Box sx={{ mt: 2 }}>
-                            <ImageList cols={2} rowHeight={164} variant="masonry" >
-                              {imageList.map(file =>
-                                <ImageListItem key={file.id}>
-                                  <img
-                                    src={`/files/${file.file_path}`}
-                                    alt={file.file_name}
-                                    loading="lazy"
-                                    onClick={() => handleImagePreview(`/files/${file.file_path}`, file.file_name)}
-                                    style={{ cursor: 'pointer' }}
-                                  />
-                                </ImageListItem>
-                              )}
-                            </ImageList>
+                    <ListItemText
+                      sx={{ pr: 2 }}
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Chip
+                              label={dateString}
+                              size="small"
+                              variant="outlined"
+                              sx={{ mr: 1 }}
+                            />
                           </Box>
-                        )}
-
-                        {item.attachments.length > 0 && (
-                          <Box sx={{ mt: 2 }}>
-                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                              附件 ({item.attachments.length})
-                            </Typography>
-                            <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
-                              {item.attachments.map((file) => (
-                                <ListItem
-                                  key={file.id}
-                                  component="div"
-                                  sx={{ py: 0.5 }}
-                                  secondaryAction={
-                                    <a
-                                      href={`/files/${file.file_path}`}
-                                      download={file.file_name}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ textDecoration: 'none' }}
-                                    >
-                                      <IconButton size="small" aria-label="download">
-                                        <Download fontSize="small" />
-                                      </IconButton>
-                                    </a>
-                                  }
-                                >
-                                  <ListItemIcon sx={{ minWidth: 32 }}>
-                                    {file.content_type.startsWith('image/') ?
-                                      <ImageIcon fontSize="small" /> :
-                                      <AttachmentIcon fontSize="small" />}
-                                  </ListItemIcon>
-                                  <ListItemText
-                                    primary={file.file_name}
-                                    secondary={formatFileSize(file.file_size)}
-                                    primaryTypographyProps={{
-                                      noWrap: true,
-                                      variant: 'body2',
-                                      sx: { fontSize: '0.875rem' }
-                                    }}
-                                    secondaryTypographyProps={{
-                                      variant: 'caption',
-                                      sx: { fontSize: '0.75rem' }
-                                    }}
-                                    sx={{
-                                      pr: 1,
-                                      '& .MuiListItemText-primary': {
-                                        maxWidth: { xs: '150px', sm: '200px', md: '300px' }
-                                      }
-                                    }}
-                                  />
-                                </ListItem>
-                              ))}
-                            </List>
+                          <Box>
+                            <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
+                              {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                            </IconButton>
+                            <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
                           </Box>
-                        )}
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              </React.Fragment>
-            );
-          })}
-        </List>
-      )}
+                        </Box>
+                      }
+                      secondary={
+                        <Typography component="div" variant="body2">
+                          {hasContent && (
+                            <Paper
+                              variant="outlined"
+                              sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
+                            >
+                              <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {item.content}
+                              </Typography>
+                            </Paper>
+                          )}
+
+                          {imageList.length > 0 && (
+                            <Box sx={{ mt: 2 }}>
+                              <ImageList cols={2} rowHeight={164} variant="masonry" >
+                                {imageList.map(file =>
+                                  <ImageListItem key={file.id}>
+                                    <img
+                                      src={`/files/${file.file_path}`}
+                                      alt={file.file_name}
+                                      loading="lazy"
+                                      onClick={() => handleImagePreview(`/files/${file.file_path}`, file.file_name)}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  </ImageListItem>
+                                )}
+                              </ImageList>
+                            </Box>
+                          )}
+
+                          {item.attachments.length > 0 && (
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                                附件 ({item.attachments.length})
+                              </Typography>
+                              <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
+                                {item.attachments.map((file) => (
+                                  <ListItem
+                                    key={file.id}
+                                    component="div"
+                                    sx={{ py: 0.5 }}
+                                    secondaryAction={
+                                      <a
+                                        href={`/files/${file.file_path}`}
+                                        download={file.file_name}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ textDecoration: 'none' }}
+                                      >
+                                        <IconButton size="small" aria-label="download">
+                                          <Download fontSize="small" />
+                                        </IconButton>
+                                      </a>
+                                    }
+                                  >
+                                    <ListItemIcon sx={{ minWidth: 32 }}>
+                                      {file.content_type.startsWith('image/') ?
+                                        <ImageIcon fontSize="small" /> :
+                                        <AttachmentIcon fontSize="small" />}
+                                    </ListItemIcon>
+                                    <ListItemText
+                                      primary={file.file_name}
+                                      secondary={formatFileSize(file.file_size)}
+                                      primaryTypographyProps={{
+                                        noWrap: true,
+                                        variant: 'body2',
+                                        sx: { fontSize: '0.875rem' }
+                                      }}
+                                      secondaryTypographyProps={{
+                                        variant: 'caption',
+                                        sx: { fontSize: '0.75rem' }
+                                      }}
+                                      sx={{
+                                        pr: 1,
+                                        '& .MuiListItemText-primary': {
+                                          maxWidth: { xs: '150px', sm: '200px', md: '300px' }
+                                        }
+                                      }}
+                                    />
+                                  </ListItem>
+                                ))}
+                              </List>
+                            </Box>
+                          )}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                </React.Fragment>
+              );
+            })}
+          </List>
+        )}
       </Container>
-      
+
       {/* 添加SpeedDial浮动操作按钮 */}
       <SpeedDial
         ariaLabel="操作菜单"
