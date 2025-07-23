@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 import TextareaAutosize from '@mui/material/TextareaAutosize';
+import LinearProgress from '@mui/material/LinearProgress';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SendIcon from '@mui/icons-material/Send';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -39,6 +40,8 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // 计算文件总容量
   const getTotalFileSize = () => {
@@ -69,23 +72,36 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
     files.forEach((file) => formData.append('files', file));
 
     try {
+      setUploading(true);
+      setUploadProgress(0);
+      
       const response = await axios.post('/api/create', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         withCredentials: true,
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
+        },
       });
 
       // 清空表单
       setContent('');
       setFiles([]);
       setFileInputKey(Date.now());
+      setUploadProgress(0);
       
       // 关闭Modal并通知父组件刷新列表
       handleClose();
       if (onSubmitSuccess) onSubmitSuccess('提交成功: ' + JSON.stringify(response.data));
     } catch (error) {
       if (onSubmitSuccess) onSubmitSuccess('提交失败: ' + (error.response?.data?.message || error.message), true);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -106,8 +122,19 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             onChange={(e) => setContent(e.target.value)}
             style={{ width: '100%', minHeight: '100px' }}
             placeholder="输入内容..."
+            disabled={uploading}
           />
         </Box>
+        
+        {/* Upload progress bar */}
+        {uploading && (
+          <Box sx={{ width: '100%', mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              上传进度: {uploadProgress}%
+            </Typography>
+            <LinearProgress variant="determinate" value={uploadProgress} />
+          </Box>
+        )}
         <Box sx={{ 
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
@@ -127,6 +154,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
               color="secondary"
               startIcon={<CloudUploadIcon />}
               fullWidth={{ xs: true, sm: false }}
+              disabled={uploading}
               sx={{ 
                 minWidth: { xs: '100%', sm: '200px' },
                 fontSize: { xs: '0.875rem', sm: '0.875rem' }
@@ -141,6 +169,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
                 onChange={(e) => setFiles(Array.from(e.target.files))}
                 key={fileInputKey}
                 multiple
+                disabled={uploading}
               />
             </Button>
           </Box>
@@ -156,6 +185,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
               variant="outlined" 
               startIcon={<CancelIcon />}
               onClick={handleClose}
+              disabled={uploading}
               sx={{ 
                 color: 'text.secondary',
                 flex: { xs: 1, sm: 'none' },
@@ -168,6 +198,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
               variant="contained" 
               startIcon={<SendIcon />}
               onClick={handleSubmit}
+              disabled={uploading}
               sx={{ 
                 bgcolor: 'primary.main',
                 flex: { xs: 1, sm: 'none' },
@@ -177,7 +208,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
                 }
               }}
             >
-              发送
+              {uploading ? '上传中...' : '发送'}
             </Button>
           </Box>
         </Box>

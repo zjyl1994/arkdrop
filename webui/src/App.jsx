@@ -13,7 +13,7 @@ const theme = createTheme({
     secondary: blue,
   },
   typography: {
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: 'Roboto, Arial, sans-serif',
   },
 });
 

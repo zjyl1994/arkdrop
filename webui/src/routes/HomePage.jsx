@@ -36,6 +36,18 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
 import ConfirmDialog from '../compoments/ConfirmDialog';
+import ImagePreviewModal from '../compoments/ImagePreviewModal';
+
+// Format file size with appropriate unit
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B';
+  
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -48,6 +60,11 @@ const HomePage = () => {
     title: '',
     message: '',
     onConfirm: null
+  });
+  const [imagePreview, setImagePreview] = useState({
+    open: false,
+    src: '',
+    alt: ''
   });
 
   // 添加Modal控制函数
@@ -75,6 +92,24 @@ const HomePage = () => {
       title: '',
       message: '',
       onConfirm: null
+    });
+  };
+
+  // 处理图片预览
+  const handleImagePreview = (src, alt) => {
+    setImagePreview({
+      open: true,
+      src,
+      alt
+    });
+  };
+
+  // 关闭图片预览
+  const handleCloseImagePreview = () => {
+    setImagePreview({
+      open: false,
+      src: '',
+      alt: ''
     });
   };
 
@@ -204,40 +239,25 @@ const HomePage = () => {
   ];
 
   return (
-    <Container sx={{ mt: 3 }}>
-      {/* Snackbar组件 */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={handleSnackbarClose}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      />
-
-      {/* 添加SpeedDial浮动操作按钮 */}
-      <SpeedDial
-        ariaLabel="操作菜单"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        icon={<SpeedDialIcon />}
-      >
-        {actions.map((action) => (
-          <SpeedDialAction
-            key={action.name}
-            icon={action.icon}
-            tooltipTitle={action.name}
-            onClick={action.onClick}
-          />
-        ))}
-      </SpeedDial>
+    <>
+      <Container sx={{ mt: 11 }}>
+        {/* Snackbar组件 */}
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          message={snackbarMessage}
+          action={
+            <IconButton
+              size="small"
+              aria-label="close"
+              color="inherit"
+              onClick={handleSnackbarClose}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
+        />
 
       {/* 添加Modal组件 */}
       <CreatePostModal
@@ -254,6 +274,14 @@ const HomePage = () => {
         title={confirmDialog.title}
         message={confirmDialog.message}
         confirmColor={confirmDialog.confirmColor || 'primary'}
+      />
+
+      {/* 图片预览模态框 */}
+      <ImagePreviewModal
+        open={imagePreview.open}
+        onClose={handleCloseImagePreview}
+        imageSrc={imagePreview.src}
+        imageAlt={imagePreview.alt}
       />
 
       {listData.length === 0 ? (
@@ -345,13 +373,15 @@ const HomePage = () => {
 
                         {imageList.length > 0 && (
                           <Box sx={{ mt: 2 }}>
-                            <ImageList cols={3} rowHeight={164} variant="masonry" >
+                            <ImageList cols={2} rowHeight={164} variant="masonry" >
                               {imageList.map(file =>
                                 <ImageListItem key={file.id}>
                                   <img
                                     src={`/files/${file.file_path}`}
                                     alt={file.file_name}
                                     loading="lazy"
+                                    onClick={() => handleImagePreview(`/files/${file.file_path}`, file.file_name)}
+                                    style={{ cursor: 'pointer' }}
                                   />
                                 </ImageListItem>
                               )}
@@ -391,7 +421,7 @@ const HomePage = () => {
                                   </ListItemIcon>
                                   <ListItemText
                                     primary={file.file_name}
-                                    secondary={`${Math.round(file.file_size / 1024)} KB`}
+                                    secondary={formatFileSize(file.file_size)}
                                     primaryTypographyProps={{
                                       noWrap: true,
                                       variant: 'body2',
@@ -422,7 +452,24 @@ const HomePage = () => {
           })}
         </List>
       )}
-    </Container>
+      </Container>
+      
+      {/* 添加SpeedDial浮动操作按钮 */}
+      <SpeedDial
+        ariaLabel="操作菜单"
+        sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1300 }}
+        icon={<SpeedDialIcon />}
+      >
+        {actions.map((action) => (
+          <SpeedDialAction
+            key={action.name}
+            icon={action.icon}
+            tooltipTitle={action.name}
+            onClick={action.onClick}
+          />
+        ))}
+      </SpeedDial>
+    </>
   );
 };
 
