@@ -31,9 +31,11 @@ import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
+import ConfirmDialog from '../compoments/ConfirmDialog';
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -41,7 +43,13 @@ const HomePage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
+
   // 添加Modal控制函数
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
@@ -58,6 +66,16 @@ const HomePage = () => {
   const showMessage = (message) => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
+  };
+
+  // 关闭确认对话框
+  const handleCloseConfirmDialog = () => {
+    setConfirmDialog({
+      open: false,
+      title: '',
+      message: '',
+      onConfirm: null
+    });
   };
 
   // Fetch existing data on page load
@@ -120,7 +138,7 @@ const HomePage = () => {
       });
       setListData(res.data);
     }
-    
+
     // 如果有消息，则显示
     if (message) {
       showMessage(message);
@@ -140,38 +158,49 @@ const HomePage = () => {
 
   // 处理删除操作
   const handleDelete = async (id) => {
-    if (window.confirm('确定要删除这条记录吗？')) {
-      try {
-        await axios.post(`/api/delete?id=${id}`, {}, {
-          withCredentials: true,
-        });
-        showMessage('删除成功');
-        listChangeAction();
-      } catch (error) {
-        showMessage('删除失败: ' + error.message);
+    setConfirmDialog({
+      open: true,
+      title: '确认删除',
+      message: '确定要删除这条记录吗？',
+      onConfirm: async () => {
+        try {
+          await axios.post(`/api/delete?id=${id}`, {}, {
+            withCredentials: true,
+          });
+          showMessage('删除成功');
+          listChangeAction();
+        } catch (error) {
+          showMessage('删除失败: ' + error.message);
+        }
       }
-    }
+    });
   };
 
   // Clear all data
   const handleClean = async () => {
-    if (window.confirm('确定要清除所有数据吗？')) {
-      try {
-        await axios.post('/api/clean', {}, {
-          withCredentials: true,
-        });
-        showMessage('数据已清除');
-        listChangeAction();
-      } catch (error) {
-        showMessage('清除失败: ' + error.message);
-      }
-    }
+    setConfirmDialog({
+      open: true,
+      title: '确认清除',
+      message: '确定要清除所有数据吗？此操作不可撤销。',
+      onConfirm: async () => {
+        try {
+          await axios.post('/api/clean', {}, {
+            withCredentials: true,
+          });
+          showMessage('数据已清除');
+          listChangeAction();
+        } catch (error) {
+          showMessage('清除失败: ' + error.message);
+        }
+      },
+      confirmColor: 'error'
+    });
   };
 
   // SpeedDial操作
   const actions = [
     { icon: <AddIcon />, name: '添加内容', onClick: handleOpenModal },
-    { icon: <DeleteIcon />, name: '清空所有', onClick: handleClean },
+    { icon: <ClearAllIcon />, name: '清空所有', onClick: handleClean },
   ];
 
   return (
@@ -193,7 +222,7 @@ const HomePage = () => {
           </IconButton>
         }
       />
-      
+
       {/* 添加SpeedDial浮动操作按钮 */}
       <SpeedDial
         ariaLabel="操作菜单"
@@ -209,16 +238,26 @@ const HomePage = () => {
           />
         ))}
       </SpeedDial>
-      
+
       {/* 添加Modal组件 */}
-      <CreatePostModal 
-        open={modalOpen} 
-        handleClose={handleCloseModal} 
+      <CreatePostModal
+        open={modalOpen}
+        handleClose={handleCloseModal}
         onSubmitSuccess={listChangeAction}
       />
 
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={handleCloseConfirmDialog}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmColor={confirmDialog.confirmColor || 'primary'}
+      />
+
       {listData.length === 0 ? (
-        <Paper 
+        <Paper
           elevation={0}
           sx={{
             display: 'flex',
@@ -255,11 +294,11 @@ const HomePage = () => {
             const hasContent = item.content && item.content.trim().length > 0;
             const hasAttachments = item.attachments.length > 0;
             const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
-            
+
             return (
               <React.Fragment key={item.id}>
                 {index > 0 && <Divider variant="inset" component="li" />}
-                <ListItem 
+                <ListItem
                   alignItems="flex-start"
                   sx={{ pb: 0 }}
                 >
@@ -268,17 +307,17 @@ const HomePage = () => {
                       {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
                     </Avatar>
                   </ListItemAvatar>
-                  
+
                   <ListItemText
                     sx={{ pr: 2 }}
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Chip 
-                            label={dateString} 
-                            size="small" 
-                            variant="outlined" 
-                            sx={{ mr: 1 }} 
+                          <Chip
+                            label={dateString}
+                            size="small"
+                            variant="outlined"
+                            sx={{ mr: 1 }}
                           />
                         </Box>
                         <Box>
@@ -294,8 +333,8 @@ const HomePage = () => {
                     secondary={
                       <Typography component="div" variant="body2">
                         {hasContent && (
-                          <Paper 
-                            variant="outlined" 
+                          <Paper
+                            variant="outlined"
                             sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
                           >
                             <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -303,7 +342,7 @@ const HomePage = () => {
                             </Typography>
                           </Paper>
                         )}
-                        
+
                         {imageList.length > 0 && (
                           <Box sx={{ mt: 2 }}>
                             <ImageList cols={3} rowHeight={164} variant="masonry" >
@@ -319,7 +358,7 @@ const HomePage = () => {
                             </ImageList>
                           </Box>
                         )}
-                        
+
                         {item.attachments.length > 0 && (
                           <Box sx={{ mt: 2 }}>
                             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -327,9 +366,9 @@ const HomePage = () => {
                             </Typography>
                             <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
                               {item.attachments.map((file) => (
-                                <ListItem 
-                                  key={file.id} 
-                                  component="div" 
+                                <ListItem
+                                  key={file.id}
+                                  component="div"
                                   sx={{ py: 0.5 }}
                                   secondaryAction={
                                     <a
@@ -346,15 +385,15 @@ const HomePage = () => {
                                   }
                                 >
                                   <ListItemIcon sx={{ minWidth: 32 }}>
-                                    {file.content_type.startsWith('image/') ? 
-                                      <ImageIcon fontSize="small" /> : 
+                                    {file.content_type.startsWith('image/') ?
+                                      <ImageIcon fontSize="small" /> :
                                       <AttachmentIcon fontSize="small" />}
                                   </ListItemIcon>
-                                  <ListItemText 
+                                  <ListItemText
                                     primary={file.file_name}
                                     secondary={`${Math.round(file.file_size / 1024)} KB`}
-                                    primaryTypographyProps={{ 
-                                      noWrap: true, 
+                                    primaryTypographyProps={{
+                                      noWrap: true,
                                       variant: 'body2',
                                       sx: { fontSize: '0.875rem' }
                                     }}
@@ -362,7 +401,7 @@ const HomePage = () => {
                                       variant: 'caption',
                                       sx: { fontSize: '0.75rem' }
                                     }}
-                                    sx={{ 
+                                    sx={{
                                       pr: 1,
                                       '& .MuiListItemText-primary': {
                                         maxWidth: { xs: '150px', sm: '200px', md: '300px' }
