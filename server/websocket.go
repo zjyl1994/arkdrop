@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strconv"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -12,9 +13,14 @@ type Client struct {
 	channel string
 }
 
+type ClientSetting struct {
+	Echo bool
+}
+
 var (
-	rooms      = make(map[string]map[*Client]bool)
-	roomsMutex = &sync.Mutex{}
+	rooms          = make(map[string]map[*Client]bool)
+	roomsMutex     = &sync.Mutex{}
+	clientSettings = make(map[*Client]ClientSetting)
 )
 
 func WsHandler(c *websocket.Conn) {
@@ -22,13 +28,14 @@ func WsHandler(c *websocket.Conn) {
 	if channel == "" {
 		channel = "default"
 	}
+	echo, _ := strconv.ParseBool(c.Query("echo"))
 
 	client := &Client{
 		conn:    c,
 		channel: channel,
 	}
 
-	addClientToRoom(client)
+	addClientToRoom(client, ClientSetting{Echo: echo})
 
 	defer func() {
 		removeClientFromRoom(client)
@@ -48,7 +55,7 @@ func WsHandler(c *websocket.Conn) {
 	}
 }
 
-func addClientToRoom(client *Client) {
+func addClientToRoom(client *Client, setting ClientSetting) {
 	roomsMutex.Lock()
 	defer roomsMutex.Unlock()
 
@@ -56,6 +63,7 @@ func addClientToRoom(client *Client) {
 		rooms[client.channel] = make(map[*Client]bool)
 	}
 	rooms[client.channel][client] = true
+	clientSettings[client] = setting
 }
 
 func removeClientFromRoom(client *Client) {
@@ -69,6 +77,7 @@ func removeClientFromRoom(client *Client) {
 				delete(rooms, client.channel)
 			}
 		}
+		delete(clientSettings, client)
 	}
 }
 
@@ -77,13 +86,21 @@ func broadcastToRoom(channel string, msgType int, message []byte, sender *Client
 	defer roomsMutex.Unlock()
 
 	for client := range rooms[channel] {
-		if client == sender {
+		var broadcastEcho bool
+		if settings, ok := clientSettings[client]; ok {
+			broadcastEcho = settings.Echo
+		}
+
+		// skip boardcast to sender when echo disabled.
+		if !broadcastEcho && client == sender {
 			continue
 		}
+
 		if err := client.conn.WriteMessage(msgType, message); err != nil {
 			logrus.Errorln("Websocket send message failed: ", err)
 			_ = client.conn.Close()
 			delete(rooms[channel], client)
+			delete(clientSettings, client)
 		}
 	}
 }
