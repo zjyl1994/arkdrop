@@ -280,15 +280,6 @@ const HomePage = () => {
                             variant="outlined" 
                             sx={{ mr: 1 }} 
                           />
-                          {item.favorite && 
-                            <Chip 
-                              icon={<StarIcon fontSize="small" />} 
-                              label="已收藏" 
-                              size="small" 
-                              color="warning" 
-                              variant="outlined" 
-                            />
-                          }
                         </Box>
                         <Box>
                           <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>

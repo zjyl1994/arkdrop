@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 import TextareaAutosize from '@mui/material/TextareaAutosize';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import SendIcon from '@mui/icons-material/Send';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { styled } from '@mui/material/styles';
 
 const VisuallyHiddenInput = styled('input')({
@@ -38,6 +39,23 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
+
+  // 计算文件总容量
+  const getTotalFileSize = () => {
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes === 0) return '';
+    
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = totalBytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return ` (${size.toFixed(1)} ${units[unitIndex]})`;
+  };
 
   const handleSubmit = async () => {
     if (!content && files.length === 0) {
@@ -90,25 +108,79 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             placeholder="输入内容..."
           />
         </Box>
-        <ButtonGroup variant="contained">
-          <Button
-            component="label"
-            role={undefined}
-            variant="contained"
-            tabIndex={-1}
-            startIcon={<CloudUploadIcon />}
-          >
-            {files.length > 0 ? `已选择 ${files.length} 个文件` : "上传文件"}
-            <VisuallyHiddenInput
-              type="file"
-              onChange={(e) => setFiles(Array.from(e.target.files))}
-              key={fileInputKey}
-              multiple
-            />
-          </Button>
-          <Button onClick={handleSubmit}>发送</Button>
-          <Button onClick={handleClose}>取消</Button>
-        </ButtonGroup>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: { xs: 'stretch', sm: 'center' }
+        }}>
+          {/* 上传按钮单独一排 */}
+          <Box sx={{ 
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'flex-start' },
+            mb: { xs: 1, sm: 0 },
+            mr: { xs: 0, sm: 'auto' }
+          }}>
+            <Button
+              component="label"
+              variant="outlined"
+              color="secondary"
+              startIcon={<CloudUploadIcon />}
+              fullWidth={{ xs: true, sm: false }}
+              sx={{ 
+                minWidth: { xs: '100%', sm: '200px' },
+                fontSize: { xs: '0.875rem', sm: '0.875rem' }
+              }}
+            >
+              {files.length > 0 
+                ? `已选择 ${files.length} 个文件${getTotalFileSize()}`
+                : "上传文件"
+              }
+              <VisuallyHiddenInput
+                type="file"
+                onChange={(e) => setFiles(Array.from(e.target.files))}
+                key={fileInputKey}
+                multiple
+              />
+            </Button>
+          </Box>
+          
+          {/* 操作按钮组 */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            justifyContent: { xs: 'center', sm: 'flex-end' },
+            flexDirection: { xs: 'row', sm: 'row' }
+          }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<CancelIcon />}
+              onClick={handleClose}
+              sx={{ 
+                color: 'text.secondary',
+                flex: { xs: 1, sm: 'none' },
+                minWidth: { xs: 'auto', sm: '80px' }
+              }}
+            >
+              取消
+            </Button>
+            <Button 
+              variant="contained" 
+              startIcon={<SendIcon />}
+              onClick={handleSubmit}
+              sx={{ 
+                bgcolor: 'primary.main',
+                flex: { xs: 1, sm: 'none' },
+                minWidth: { xs: 'auto', sm: '80px' },
+                '&:hover': {
+                  bgcolor: 'primary.dark'
+                }
+              }}
+            >
+              发送
+            </Button>
+          </Box>
+        </Box>
       </Box>
     </Modal>
   );
