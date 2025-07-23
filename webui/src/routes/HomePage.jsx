@@ -3,12 +3,9 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { toast } from 'react-toastify';
 import Container from '@mui/material/Container';
-import TextareaAutosize from '@mui/material/TextareaAutosize';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
-import { styled } from '@mui/material/styles';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import Alert from '@mui/material/Alert';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -21,25 +18,23 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Download from '@mui/icons-material/Download';
+import Fab from '@mui/material/Fab';
+import AddIcon from '@mui/icons-material/Add';
 
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
+// 导入CreatePostModal组件
+import CreatePostModal from '../compoments/CreatePostModal';
+
+
+
 
 const HomePage = () => {
   const wsRef = useRef(null);
-  const [content, setContent] = useState('');
-  const [files, setFiles] = useState([]);
   const [listData, setListData] = useState([]);
-  const [fileInputKey, setFileInputKey] = useState(Date.now());
+  const [modalOpen, setModalOpen] = useState(false);
+  
+  // 添加Modal控制函数
+  const handleOpenModal = () => setModalOpen(true);
+  const handleCloseModal = () => setModalOpen(false);
 
   // Fetch existing data on page load
   useEffect(() => {
@@ -59,7 +54,7 @@ const HomePage = () => {
     // WebSocket connection
     if (!wsRef.current) {
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsRef.current = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws`);
+      wsRef.current = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws?echo=1`);
 
       wsRef.current.onopen = () => {
         console.log('WebSocket connection established');
@@ -98,118 +93,81 @@ const HomePage = () => {
       wsRef.current.send('list_change');
     } else {
       console.warn('WebSocket is not connected or closed, cannot send message.');
-    }
-    const res = await axios.get('/api/list', {
-      withCredentials: true,
-    });
-    setListData(res.data);
-  }
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    if (!content && files.length === 0) {
-      toast('Please fill in content or select a file');
-      return;
-    }
-
-    const formData = new FormData();
-    if (content) formData.append('content', content);
-    files.forEach((file) => formData.append('files', file));
-
-    try {
-      const response = await axios.post('/api/create', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await axios.get('/api/list', {
         withCredentials: true,
       });
-
-      toast('Submission successful: ' + JSON.stringify(response.data));
-
+      setListData(res.data);
+    }
+  }
+  // 处理收藏操作
+  const handleFavorite = async (id) => {
+    try {
+      await axios.post(`/api/favorite/${id}`, {}, {
+        withCredentials: true,
+      });
       listChangeAction();
-
-      // Clear form
-      setContent('');
-      setFiles([]);
-      setFileInputKey(Date.now());
     } catch (error) {
-      toast('Submission failed: ' + (error.response?.data?.message || error.message));
+      toast('操作失败: ' + error.message);
+    }
+  };
+
+  // 处理删除操作
+  const handleDelete = async (id) => {
+    if (window.confirm('确定要删除这条记录吗？')) {
+      try {
+        await axios.post(`/api/delete/${id}`, {}, {
+          withCredentials: true,
+        });
+        toast('删除成功');
+        listChangeAction();
+      } catch (error) {
+        toast('删除失败: ' + error.message);
+      }
     }
   };
 
   // Clear all data
   const handleClean = async () => {
-    if (window.confirm('Are you sure you want to clear all data?')) {
+    if (window.confirm('确定要清除所有数据吗？')) {
       try {
         await axios.post('/api/clean', {}, {
           withCredentials: true,
         });
-        toast('Data cleared');
+        toast('数据已清除');
 
         listChangeAction();
       } catch (error) {
-        toast('Clear failed: ' + error.message);
+        toast('清除失败: ' + error.message);
       }
     }
   };
 
-  // Delete single data item
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        await axios.post(`/api/delete?id=${id}`, {}, {
-          withCredentials: true,
-        });
-
-        toast('Data deleted');
-
-        listChangeAction();
-      } catch (error) {
-        toast('Delete failed: ' + error.message);
-      }
-    }
-  };
-
-  // Favorite action
-  const handleFavorite = async (id) => {
-    try {
-      await axios.post(`/api/favorite?id=${id}`, {}, {
-        withCredentials: true,
-      });
-
-      listChangeAction();
-    } catch (error) {
-      toast('Operation failed: ' + error.message);
-    }
-  };
-
+  // 添加清除按钮到页面某处，例如顶部
+  // 可以在Container下方添加：
   return (
     <Container>
-      <Box width="100%">
-        <TextareaAutosize
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          width="100%"
-        />
-        <ButtonGroup variant="contained">
-          <Button
-            component="label"
-            role={undefined}
-            variant="contained"
-            tabIndex={-1}
-            startIcon={<CloudUploadIcon />}
-          >
-            {files.length > 0 ? `${files.length} Selected` : "Upload files"}
-            <VisuallyHiddenInput
-              type="file"
-              onChange={(e) => setFiles(Array.from(e.target.files))}
-              key={fileInputKey}
-              multiple
-            />
-          </Button>
-          <Button onClick={handleSubmit}>Send</Button>
-          <Button onClick={handleClean}>Clean</Button>
-        </ButtonGroup>
+      <Box display="flex" justifyContent="flex-end" mb={2}>
+        <Button variant="outlined" color="error" onClick={handleClean}>清除所有</Button>
       </Box>
+      
+      {/* 移除原来的表单部分 */}
+      
+      {/* 添加浮动操作按钮 */}
+      <Fab 
+        color="primary" 
+        aria-label="add"
+        onClick={handleOpenModal}
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+      >
+        <AddIcon />
+      </Fab>
+      
+      {/* 添加Modal组件 */}
+      <CreatePostModal 
+        open={modalOpen} 
+        handleClose={handleCloseModal} 
+        onSubmitSuccess={listChangeAction}
+      />
 
       {listData.length === 0 ? (
         <Alert severity="info">暂无数据</Alert>
