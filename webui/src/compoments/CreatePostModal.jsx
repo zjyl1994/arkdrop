@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
@@ -42,7 +41,8 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
 
   const handleSubmit = async () => {
     if (!content && files.length === 0) {
-      toast('请填写内容或选择文件');
+      // 使用父组件的showMessage函数，通过onSubmitSuccess回调传递消息
+      if (onSubmitSuccess) onSubmitSuccess('请填写内容或选择文件', true);
       return;
     }
 
@@ -58,8 +58,6 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
         withCredentials: true,
       });
 
-      toast('提交成功: ' + JSON.stringify(response.data));
-
       // 清空表单
       setContent('');
       setFiles([]);
@@ -67,9 +65,9 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
       
       // 关闭Modal并通知父组件刷新列表
       handleClose();
-      if (onSubmitSuccess) onSubmitSuccess();
+      if (onSubmitSuccess) onSubmitSuccess('提交成功: ' + JSON.stringify(response.data));
     } catch (error) {
-      toast('提交失败: ' + (error.response?.data?.message || error.message));
+      if (onSubmitSuccess) onSubmitSuccess('提交失败: ' + (error.response?.data?.message || error.message), true);
     }
   };
 

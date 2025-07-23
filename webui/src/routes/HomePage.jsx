@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { toast } from 'react-toastify';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -20,21 +19,43 @@ import ListItemText from '@mui/material/ListItemText';
 import Download from '@mui/icons-material/Download';
 import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InboxIcon from '@mui/icons-material/Inbox';
+import Snackbar from '@mui/material/Snackbar';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
+import SpeedDial from '@mui/material/SpeedDial';
+import SpeedDialIcon from '@mui/material/SpeedDialIcon';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
+import Paper from '@mui/material/Paper';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
-
-
-
 
 const HomePage = () => {
   const wsRef = useRef(null);
   const [listData, setListData] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
   
   // 添加Modal控制函数
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
+
+  // Snackbar控制函数
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
+
+  // 显示消息的函数，替代toast
+  const showMessage = (message) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
 
   // Fetch existing data on page load
   useEffect(() => {
@@ -76,8 +97,6 @@ const HomePage = () => {
       };
     }
 
-
-
     // Close WebSocket connection on component unmount
     return () => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -87,7 +106,7 @@ const HomePage = () => {
     };
   }, []);
 
-  const listChangeAction = async () => {
+  const listChangeAction = async (message, isError) => {
     // Send message via WebSocket
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send('list_change');
@@ -98,6 +117,11 @@ const HomePage = () => {
       });
       setListData(res.data);
     }
+    
+    // 如果有消息，则显示
+    if (message) {
+      showMessage(message);
+    }
   }
   // 处理收藏操作
   const handleFavorite = async (id) => {
@@ -107,7 +131,7 @@ const HomePage = () => {
       });
       listChangeAction();
     } catch (error) {
-      toast('操作失败: ' + error.message);
+      showMessage('操作失败: ' + error.message);
     }
   };
 
@@ -118,10 +142,10 @@ const HomePage = () => {
         await axios.post(`/api/delete/${id}`, {}, {
           withCredentials: true,
         });
-        toast('删除成功');
+        showMessage('删除成功');
         listChangeAction();
       } catch (error) {
-        toast('删除失败: ' + error.message);
+        showMessage('删除失败: ' + error.message);
       }
     }
   };
@@ -133,34 +157,55 @@ const HomePage = () => {
         await axios.post('/api/clean', {}, {
           withCredentials: true,
         });
-        toast('数据已清除');
-
+        showMessage('数据已清除');
         listChangeAction();
       } catch (error) {
-        toast('清除失败: ' + error.message);
+        showMessage('清除失败: ' + error.message);
       }
     }
   };
 
-  // 添加清除按钮到页面某处，例如顶部
-  // 可以在Container下方添加：
+  // SpeedDial操作
+  const actions = [
+    { icon: <AddIcon />, name: '添加内容', onClick: handleOpenModal },
+    { icon: <DeleteIcon />, name: '清空所有', onClick: handleClean },
+  ];
+
   return (
     <Container>
-      <Box display="flex" justifyContent="flex-end" mb={2}>
-        <Button variant="outlined" color="error" onClick={handleClean}>清除所有</Button>
-      </Box>
+      {/* Snackbar组件 */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        action={
+          <IconButton
+            size="small"
+            aria-label="close"
+            color="inherit"
+            onClick={handleSnackbarClose}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
+      />
       
-      {/* 移除原来的表单部分 */}
-      
-      {/* 添加浮动操作按钮 */}
-      <Fab 
-        color="primary" 
-        aria-label="add"
-        onClick={handleOpenModal}
+      {/* 添加SpeedDial浮动操作按钮 */}
+      <SpeedDial
+        ariaLabel="操作菜单"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        icon={<SpeedDialIcon />}
       >
-        <AddIcon />
-      </Fab>
+        {actions.map((action) => (
+          <SpeedDialAction
+            key={action.name}
+            icon={action.icon}
+            tooltipTitle={action.name}
+            onClick={action.onClick}
+          />
+        ))}
+      </SpeedDial>
       
       {/* 添加Modal组件 */}
       <CreatePostModal 
@@ -170,12 +215,41 @@ const HomePage = () => {
       />
 
       {listData.length === 0 ? (
-        <Alert severity="info">暂无数据</Alert>
+        <Paper 
+          elevation={0}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            py: 8,
+            px: 2,
+            mt: 4,
+            backgroundColor: 'transparent'
+          }}
+        >
+          <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h5" color="text.primary" gutterBottom>
+            暂无数据
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
+            您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleOpenModal}
+          >
+            添加内容
+          </Button>
+        </Paper>
       ) : (
         listData.map((item) => {
           const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
           return (
-            <Card key={item.id}>
+            <Card key={item.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Typography>
                   {dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
@@ -196,7 +270,7 @@ const HomePage = () => {
                 {imageList.length > 0 &&
                   <ImageList cols={3} rowHeight={164} variant="masonry" >
                     {imageList.map(file =>
-                      <ImageListItem key={item.img}>
+                      <ImageListItem key={file.id}>
                         <img
                           key={file.id}
                           src={`/files/${file.file_path}`}
