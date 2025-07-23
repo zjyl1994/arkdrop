@@ -175,7 +175,7 @@ const HomePage = () => {
   ];
 
   return (
-    <Container>
+    <Container sx={{ mt: 3 }}>
       {/* Snackbar组件 */}
       <Snackbar
         open={snackbarOpen}
