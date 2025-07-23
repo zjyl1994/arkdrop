@@ -8,6 +8,9 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import Alert from '@mui/material/Alert';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import CardActions from '@mui/material/CardActions';
+import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ImageListItem from '@mui/material/ImageListItem';
 import ImageList from '@mui/material/ImageList';
@@ -16,11 +19,18 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
 import Download from '@mui/icons-material/Download';
 import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InboxIcon from '@mui/icons-material/Inbox';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import AttachmentIcon from '@mui/icons-material/Attachment';
+import ImageIcon from '@mui/icons-material/Image';
+import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
@@ -28,6 +38,7 @@ import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import Paper from '@mui/material/Paper';
+import Chip from '@mui/material/Chip';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
@@ -176,7 +187,7 @@ const HomePage = () => {
       {/* Snackbar组件 */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={3000}
         onClose={handleSnackbarClose}
         message={snackbarMessage}
         action={
@@ -246,66 +257,126 @@ const HomePage = () => {
           </Button>
         </Paper>
       ) : (
-        listData.map((item) => {
-          const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
-          return (
-            <Card key={item.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography>
-                  {dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                </Typography>
-                <ButtonGroup variant="contained">
-                  <Button
-                    onClick={() => handleFavorite(item.id)}
-                  >
-                    {item.favorite ? 'Starred' : 'Star'}
-                  </Button>
-                  <Button onClick={() => handleDelete(item.id)}>
-                    Trash
-                  </Button>
-                </ButtonGroup>
-
-                {item.content ? <pre>{item.content}</pre> : null}
-
-                {imageList.length > 0 &&
-                  <ImageList cols={3} rowHeight={164} variant="masonry" >
-                    {imageList.map(file =>
-                      <ImageListItem key={file.id}>
-                        <img
-                          key={file.id}
-                          src={`/files/${file.file_path}`}
-                          alt={file.file_name}
-                          loading="lazy"
+        <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+          {listData.map((item, index) => {
+            const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
+            const hasContent = item.content && item.content.trim().length > 0;
+            const hasAttachments = item.attachments.length > 0;
+            const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
+            
+            return (
+              <React.Fragment key={item.id}>
+                {index > 0 && <Divider variant="inset" component="li" />}
+                <ListItem 
+                  alignItems="flex-start"
+                  secondaryAction={
+                    <Box>
+                      <IconButton edge="end" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
+                        {item.favorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
+                      </IconButton>
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  }
+                >
+                  <ListItemAvatar>
+                    <Avatar>
+                      {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
+                    </Avatar>
+                  </ListItemAvatar>
+                  
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <Chip 
+                          label={dateString} 
+                          size="small" 
+                          variant="outlined" 
+                          sx={{ mr: 1 }} 
                         />
-                      </ImageListItem>
-                    )}
-                  </ImageList>
-                }
-                {item.attachments.length > 0 && (
-                  <List>
-                    {item.attachments.map((file) => (
-                      <ListItem key={file.id}>
-                        <ListItemButton>
-                          <ListItemText primary={`${file.file_name}（${Math.round(file.file_size / 1024)} KB）`} />
-                          <ListItemIcon>
-                            <a
-                              href={`/files/${file.file_path}`}
-                              download={file.file_name}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Download />
-                            </a>
-                          </ListItemIcon>
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })
+                        {item.favorite && 
+                          <Chip 
+                            icon={<StarIcon fontSize="small" />} 
+                            label="已收藏" 
+                            size="small" 
+                            color="warning" 
+                            variant="outlined" 
+                          />
+                        }
+                      </Box>
+                    }
+                    secondary={
+                      <Box>
+                        {hasContent && (
+                          <Paper 
+                            variant="outlined" 
+                            sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
+                          >
+                            <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {item.content}
+                            </Typography>
+                          </Paper>
+                        )}
+                        
+                        {imageList.length > 0 && (
+                          <Box sx={{ mt: 2 }}>
+                            <ImageList cols={3} rowHeight={164} variant="masonry" >
+                              {imageList.map(file =>
+                                <ImageListItem key={file.id}>
+                                  <img
+                                    src={`/files/${file.file_path}`}
+                                    alt={file.file_name}
+                                    loading="lazy"
+                                  />
+                                </ImageListItem>
+                              )}
+                            </ImageList>
+                          </Box>
+                        )}
+                        
+                        {item.attachments.length > 0 && (
+                          <List component="div" dense sx={{ bgcolor: 'background.paper', mt: 1 }}>
+                            {item.attachments.map((file) => (
+                              <ListItem 
+                                key={file.id} 
+                                component="div" 
+                                secondaryAction={
+                                  <IconButton edge="end" aria-label="download">
+                                    <a
+                                      href={`/files/${file.file_path}`}
+                                      download={file.file_name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <Download />
+                                    </a>
+                                  </IconButton>
+                                }
+                              >
+                                <ListItemIcon>
+                                  {file.content_type.startsWith('image/') ? 
+                                    <ImageIcon fontSize="small" /> : 
+                                    <AttachmentIcon fontSize="small" />}
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary={file.file_name}
+                                  secondary={`${Math.round(file.file_size / 1024)} KB`}
+                                  primaryTypographyProps={{ noWrap: true }}
+                                  sx={{ maxWidth: { xs: '180px', sm: '250px', md: '350px' }, overflow: 'hidden' }}
+                                />
+                              </ListItem>
+                            ))}
+                          </List>
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItem>
+              </React.Fragment>
+            );
+          })}
+        </List>
       )}
     </Container>
   );
