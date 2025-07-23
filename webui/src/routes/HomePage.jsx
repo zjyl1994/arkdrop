@@ -4,25 +4,17 @@ import dayjs from 'dayjs';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import Alert from '@mui/material/Alert';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardHeader from '@mui/material/CardHeader';
-import CardActions from '@mui/material/CardActions';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ImageListItem from '@mui/material/ImageListItem';
 import ImageList from '@mui/material/ImageList';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import Download from '@mui/icons-material/Download';
-import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InboxIcon from '@mui/icons-material/Inbox';
@@ -137,7 +129,7 @@ const HomePage = () => {
   // 处理收藏操作
   const handleFavorite = async (id) => {
     try {
-      await axios.post(`/api/favorite/${id}`, {}, {
+      await axios.post(`/api/favorite?id=${id}`, {}, {
         withCredentials: true,
       });
       listChangeAction();
@@ -150,7 +142,7 @@ const HomePage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('确定要删除这条记录吗？')) {
       try {
-        await axios.post(`/api/delete/${id}`, {}, {
+        await axios.post(`/api/delete?id=${id}`, {}, {
           withCredentials: true,
         });
         showMessage('删除成功');
@@ -269,16 +261,7 @@ const HomePage = () => {
                 {index > 0 && <Divider variant="inset" component="li" />}
                 <ListItem 
                   alignItems="flex-start"
-                  secondaryAction={
-                    <Box>
-                      <IconButton edge="end" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
-                        {item.favorite ? <StarIcon color="warning" /> : <StarBorderIcon />}
-                      </IconButton>
-                      <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(item.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  }
+                  sx={{ pb: 0 }}
                 >
                   <ListItemAvatar>
                     <Avatar>
@@ -287,27 +270,38 @@ const HomePage = () => {
                   </ListItemAvatar>
                   
                   <ListItemText
+                    sx={{ pr: 2 }}
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Chip 
-                          label={dateString} 
-                          size="small" 
-                          variant="outlined" 
-                          sx={{ mr: 1 }} 
-                        />
-                        {item.favorite && 
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <Chip 
-                            icon={<StarIcon fontSize="small" />} 
-                            label="已收藏" 
+                            label={dateString} 
                             size="small" 
-                            color="warning" 
                             variant="outlined" 
+                            sx={{ mr: 1 }} 
                           />
-                        }
+                          {item.favorite && 
+                            <Chip 
+                              icon={<StarIcon fontSize="small" />} 
+                              label="已收藏" 
+                              size="small" 
+                              color="warning" 
+                              variant="outlined" 
+                            />
+                          }
+                        </Box>
+                        <Box>
+                          <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
+                            {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                          </IconButton>
+                          <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       </Box>
                     }
                     secondary={
-                      <Box>
+                      <Typography component="div" variant="body2">
                         {hasContent && (
                           <Paper 
                             variant="outlined" 
@@ -336,40 +330,60 @@ const HomePage = () => {
                         )}
                         
                         {item.attachments.length > 0 && (
-                          <List component="div" dense sx={{ bgcolor: 'background.paper', mt: 1 }}>
-                            {item.attachments.map((file) => (
-                              <ListItem 
-                                key={file.id} 
-                                component="div" 
-                                secondaryAction={
-                                  <IconButton edge="end" aria-label="download">
+                          <Box sx={{ mt: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                              附件 ({item.attachments.length})
+                            </Typography>
+                            <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
+                              {item.attachments.map((file) => (
+                                <ListItem 
+                                  key={file.id} 
+                                  component="div" 
+                                  sx={{ py: 0.5 }}
+                                  secondaryAction={
                                     <a
                                       href={`/files/${file.file_path}`}
                                       download={file.file_name}
                                       target="_blank"
                                       rel="noopener noreferrer"
+                                      style={{ textDecoration: 'none' }}
                                     >
-                                      <Download />
+                                      <IconButton size="small" aria-label="download">
+                                        <Download fontSize="small" />
+                                      </IconButton>
                                     </a>
-                                  </IconButton>
-                                }
-                              >
-                                <ListItemIcon>
-                                  {file.content_type.startsWith('image/') ? 
-                                    <ImageIcon fontSize="small" /> : 
-                                    <AttachmentIcon fontSize="small" />}
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary={file.file_name}
-                                  secondary={`${Math.round(file.file_size / 1024)} KB`}
-                                  primaryTypographyProps={{ noWrap: true }}
-                                  sx={{ maxWidth: { xs: '180px', sm: '250px', md: '350px' }, overflow: 'hidden' }}
-                                />
-                              </ListItem>
-                            ))}
-                          </List>
+                                  }
+                                >
+                                  <ListItemIcon sx={{ minWidth: 32 }}>
+                                    {file.content_type.startsWith('image/') ? 
+                                      <ImageIcon fontSize="small" /> : 
+                                      <AttachmentIcon fontSize="small" />}
+                                  </ListItemIcon>
+                                  <ListItemText 
+                                    primary={file.file_name}
+                                    secondary={`${Math.round(file.file_size / 1024)} KB`}
+                                    primaryTypographyProps={{ 
+                                      noWrap: true, 
+                                      variant: 'body2',
+                                      sx: { fontSize: '0.875rem' }
+                                    }}
+                                    secondaryTypographyProps={{
+                                      variant: 'caption',
+                                      sx: { fontSize: '0.75rem' }
+                                    }}
+                                    sx={{ 
+                                      pr: 1,
+                                      '& .MuiListItemText-primary': {
+                                        maxWidth: { xs: '150px', sm: '200px', md: '300px' }
+                                      }
+                                    }}
+                                  />
+                                </ListItem>
+                              ))}
+                            </List>
+                          </Box>
                         )}
-                      </Box>
+                      </Typography>
                     }
                   />
                 </ListItem>
