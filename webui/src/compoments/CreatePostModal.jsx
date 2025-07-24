@@ -32,6 +32,53 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // 处理剪贴板粘贴事件
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      // 只在模态框打开时处理粘贴事件
+      if (!open) return;
+      
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      const imageFiles = [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            // 为粘贴的图片生成一个有意义的文件名
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const extension = file.type.split('/')[1] || 'png';
+            const renamedFile = new File([file], `pasted-image-${timestamp}.${extension}`, {
+              type: file.type
+            });
+            imageFiles.push(renamedFile);
+          }
+        }
+      }
+      
+      if (imageFiles.length > 0) {
+        // 将粘贴的图片添加到现有文件列表中
+        setFiles(prevFiles => [...prevFiles, ...imageFiles]);
+        
+        // 显示成功消息
+        if (onSubmitSuccess) {
+          onSubmitSuccess(`已从剪贴板添加 ${imageFiles.length} 张图片`, false);
+        }
+      }
+    };
+    
+    // 添加全局粘贴事件监听器
+    document.addEventListener('paste', handlePaste);
+    
+    // 清理函数
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [open, onSubmitSuccess]);
+
   // 计算文件总容量
   const getTotalFileSize = () => {
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
@@ -113,6 +160,9 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             placeholder="输入内容..."
             disabled={uploading}
           />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
+          </Typography>
         </Box>
         
         {/* Upload progress bar */}
@@ -162,6 +212,64 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
               />
             </Button>
           </Box>
+          
+          {/* 文件列表显示 */}
+          {files.length > 0 && (
+            <Box sx={{ width: '100%', mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                已选择的文件:
+              </Typography>
+              <Box sx={{ maxHeight: '150px', overflow: 'auto' }}>
+                {files.map((file, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1,
+                      mb: 0.5,
+                      bgcolor: 'rgba(0, 0, 0, 0.04)',
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.12)'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      {file.type.startsWith('image/') ? (
+                        <Image sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
+                      ) : (
+                        <Attachment sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1
+                        }}
+                      >
+                        {file.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+                      }}
+                      disabled={uploading}
+                      sx={{ ml: 1 }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
           
           {/* 操作按钮组 */}
           <Box sx={{ 
