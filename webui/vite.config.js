@@ -1,11 +1,94 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa';
+import AutoImport from 'unplugin-auto-import/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    AutoImport({
+      imports: [
+        'react',
+        {
+          'react': [
+            'React',
+            'useState',
+            'useEffect',
+            'useRef',
+            'useCallback',
+            'useMemo',
+            'Fragment'
+          ]
+        },
+        {
+          '@mui/material': [
+            'AppBar',
+            'Toolbar',
+            'Box',
+            'Button',
+            'Typography',
+            'Container',
+            'Paper',
+            'TextField',
+            'Alert',
+            'Modal',
+            'Dialog',
+            'DialogTitle',
+            'DialogContent',
+            'DialogContentText',
+            'DialogActions',
+            'Snackbar',
+            'IconButton',
+            'List',
+            'ListItem',
+            'ListItemIcon',
+            'ListItemText',
+            'ListItemAvatar',
+            'Avatar',
+            'Divider',
+            'Chip',
+            'LinearProgress',
+            'TextareaAutosize',
+            'ImageList',
+            'ImageListItem',
+            'SpeedDial',
+            'SpeedDialIcon',
+            'SpeedDialAction',
+            'CssBaseline',
+            'ThemeProvider',
+            'createTheme'
+          ],
+          '@mui/icons-material': [
+            'Download',
+            'Add',
+            'Delete',
+            'Inbox',
+            'Star',
+            'StarBorder',
+            'Attachment',
+            'Image',
+            'TextSnippet',
+            'Close',
+            'CloudUpload',
+            'Send',
+            'Cancel',
+            'ClearAll'
+          ],
+          '@mui/material/styles': [
+             'styled'
+           ],
+           '@mui/material/colors': [
+             'blue',
+             'indigo'
+           ]
+        }
+      ],
+      dts: true, // 生成类型定义文件
+      eslintrc: {
+        enabled: true, // 生成ESLint配置
+      },
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [

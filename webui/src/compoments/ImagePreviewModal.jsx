@@ -1,10 +1,3 @@
-import React from 'react';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import { styled } from '@mui/material/styles';
-
 const StyledModal = styled(Modal)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -64,7 +57,7 @@ const ImagePreviewModal = ({ open, onClose, imageSrc, imageAlt }) => {
           aria-label="close"
           size="small"
         >
-          <CloseIcon />
+          <Close />
         </CloseButton>
       </ImageContainer>
     </StyledModal>

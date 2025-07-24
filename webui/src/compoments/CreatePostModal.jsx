@@ -1,15 +1,4 @@
-import React, { useState } from 'react';
 import axios from 'axios';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Modal from '@mui/material/Modal';
-import TextareaAutosize from '@mui/material/TextareaAutosize';
-import LinearProgress from '@mui/material/LinearProgress';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import SendIcon from '@mui/icons-material/Send';
-import CancelIcon from '@mui/icons-material/Cancel';
-import { styled } from '@mui/material/styles';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -152,7 +141,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
               component="label"
               variant="outlined"
               color="secondary"
-              startIcon={<CloudUploadIcon />}
+              startIcon={<CloudUpload />}
               fullWidth={{ xs: true, sm: false }}
               disabled={uploading}
               sx={{ 
@@ -183,7 +172,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
           }}>
             <Button 
               variant="outlined" 
-              startIcon={<CancelIcon />}
+              startIcon={<Cancel />}
               onClick={handleClose}
               disabled={uploading}
               sx={{ 
@@ -196,7 +185,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             </Button>
             <Button 
               variant="contained" 
-              startIcon={<SendIcon />}
+              startIcon={<Send />}
               onClick={handleSubmit}
               disabled={uploading}
               sx={{ 

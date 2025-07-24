@@ -1,36 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
-import Typography from '@mui/material/Typography';
-import ImageListItem from '@mui/material/ImageListItem';
-import ImageList from '@mui/material/ImageList';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
-import Download from '@mui/icons-material/Download';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import InboxIcon from '@mui/icons-material/Inbox';
-import StarIcon from '@mui/icons-material/Star';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
-import AttachmentIcon from '@mui/icons-material/Attachment';
-import ImageIcon from '@mui/icons-material/Image';
-import TextSnippetIcon from '@mui/icons-material/TextSnippet';
-import Snackbar from '@mui/material/Snackbar';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialIcon from '@mui/material/SpeedDialIcon';
-import SpeedDialAction from '@mui/material/SpeedDialAction';
-import Paper from '@mui/material/Paper';
-import Chip from '@mui/material/Chip';
-import ClearAllIcon from '@mui/icons-material/ClearAll';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
@@ -234,8 +203,8 @@ const HomePage = () => {
 
   // SpeedDial操作
   const actions = [
-    { icon: <AddIcon />, name: '添加内容', onClick: handleOpenModal },
-    { icon: <ClearAllIcon />, name: '清空所有', onClick: handleClean },
+    { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
+    { icon: <ClearAll />, name: '清空所有', onClick: handleClean },
   ];
 
   return (
@@ -274,7 +243,7 @@ const HomePage = () => {
                 backgroundColor: 'transparent'
               }}
             >
-              <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h5" color="text.primary" gutterBottom>
                 暂无数据
               </Typography>
@@ -284,7 +253,7 @@ const HomePage = () => {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<AddIcon />}
+                startIcon={<Add />}
                 onClick={handleOpenModal}
               >
                 添加内容
@@ -299,7 +268,7 @@ const HomePage = () => {
                 const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
 
                 return (
-                  <React.Fragment key={item.id}>
+                  <Fragment key={item.id}>
                     {index > 0 && <Divider variant="inset" component="li" />}
                     <ListItem
                       alignItems="flex-start"
@@ -307,7 +276,7 @@ const HomePage = () => {
                     >
                       <ListItemAvatar>
                         <Avatar>
-                          {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
+                          {hasContent ? <TextSnippet /> : hasAttachments ? (imageList.length > 0 ? <Image /> : <Attachment />) : <Inbox />}
                         </Avatar>
                       </ListItemAvatar>
 
@@ -325,11 +294,11 @@ const HomePage = () => {
                             </Box>
                             <Box>
                               <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
-                                {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-                              </IconButton>
-                              <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
+                                 {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
+                               </IconButton>
+                               <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                                 <Delete fontSize="small" />
+                               </IconButton>
                             </Box>
                           </Box>
                         }
@@ -390,10 +359,10 @@ const HomePage = () => {
                                       }
                                     >
                                       <ListItemIcon sx={{ minWidth: 32 }}>
-                                        {file.content_type.startsWith('image/') ?
-                                          <ImageIcon fontSize="small" /> :
-                                          <AttachmentIcon fontSize="small" />}
-                                      </ListItemIcon>
+                                         {file.content_type.startsWith('image/') ?
+                                           <Image fontSize="small" /> :
+                                           <Attachment fontSize="small" />}
+                                       </ListItemIcon>
                                       <ListItemText
                                         primary={file.file_name}
                                         secondary={formatFileSize(file.file_size)}
@@ -422,7 +391,7 @@ const HomePage = () => {
                         }
                       />
                     </ListItem>
-                  </React.Fragment>
+                  </Fragment>
                 );
               })}
             </List>
@@ -443,7 +412,7 @@ const HomePage = () => {
             color="inherit"
             onClick={handleSnackbarClose}
           >
-            <CloseIcon fontSize="small" />
+            <Close fontSize="small" />
           </IconButton>
         }
       />
