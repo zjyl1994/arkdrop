@@ -13,7 +13,7 @@ import (
 
 var parcelService service.ParcelService
 
-func CreateParcel(c *fiber.Ctx) error {
+func CreateParcel(c *fiber.Ctx) (err error) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func CreateParcel(c *fiber.Ctx) error {
 	for _, file := range files {
 		diskFileName := utils.RandString(10) + filepath.Ext(file.Filename)
 		diskPath := filepath.Join(vars.DataDir, "files", diskFileName)
-		if err := c.SaveFile(file, diskPath); err != nil {
+		if err = c.SaveFile(file, diskPath); err != nil {
 			return err
 		}
 		attachments = append(attachments, service.Attachment{
