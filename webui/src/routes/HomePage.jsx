@@ -1,10 +1,12 @@
 import axios from 'axios';
+import { GridView, ViewList } from '@mui/icons-material';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
 import ConfirmDialog from '../compoments/ConfirmDialog';
 import ImagePreviewModal from '../compoments/ImagePreviewModal';
 import DataListItem from '../compoments/DataListItem';
+import ImageGalleryView from '../compoments/ImageGalleryView';
 
 const HomePage = () => {
   const wsRef = useRef(null);
@@ -13,6 +15,10 @@ const HomePage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    // Load saved view mode from localStorage, default to 'list'
+    return localStorage.getItem('arkdrop-view-mode') || 'list';
+  });
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: '',
@@ -205,10 +211,42 @@ const HomePage = () => {
 
 
 
+  // 切换视图模式
+  const handleToggleViewMode = () => {
+    setViewMode(prevMode => {
+      const newMode = prevMode === 'list' ? 'gallery' : 'list';
+      // Save to localStorage
+      localStorage.setItem('arkdrop-view-mode', newMode);
+      return newMode;
+    });
+  };
+
+  // 获取所有图片附件
+  const getAllImages = () => {
+    const allImages = [];
+    listData.forEach(item => {
+      const images = item.attachments.filter(att => att.content_type.startsWith('image/'));
+      images.forEach(img => {
+        allImages.push({
+          ...img,
+          itemId: item.id,
+          itemContent: item.content,
+          itemCreatedAt: item.created_at
+        });
+      });
+    });
+    return allImages;
+  };
+
   // SpeedDial操作
   const actions = [
     { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
     { icon: <ClearAll />, name: '清空所有', onClick: handleClean },
+    { 
+      icon: viewMode === 'list' ? <GridView /> : <ViewList />, 
+      name: viewMode === 'list' ? '图片预览' : '列表视图', 
+      onClick: handleToggleViewMode 
+    },
   ];
 
   return (
@@ -232,65 +270,74 @@ const HomePage = () => {
             py: 2
           }}
         >
-          {listData.length === 0 ? (
-            <Paper
-              elevation={0}
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                py: 8,
-                px: 2,
-                mt: 4,
-                backgroundColor: 'transparent'
-              }}
-            >
-              <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h5" color="text.primary" gutterBottom>
-                暂无数据
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
-                您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<Add />}
-                onClick={handleOpenModal}
+          {viewMode === 'list' ? (
+            // 列表视图
+            listData.length === 0 ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  py: 8,
+                  px: 2,
+                  mt: 4,
+                  backgroundColor: 'transparent'
+                }}
               >
-                添加内容
-              </Button>
-            </Paper>
+                <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h5" color="text.primary" gutterBottom>
+                  暂无数据
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
+                  您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Add />}
+                  onClick={handleOpenModal}
+                >
+                  添加内容
+                </Button>
+              </Paper>
+            ) : (
+              <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+                {listData.map((item, index) => (
+                  <Fragment key={item.id}>
+                    {index > 0 && (
+                      <>
+                        <Divider
+                          variant="fullWidth"
+                          component="li"
+                          sx={{ display: { xs: 'block', sm: 'none' } }}
+                        />
+                        <Divider
+                          variant="inset"
+                          component="li"
+                          sx={{ display: { xs: 'none', sm: 'block' } }}
+                        />
+                      </>
+                    )}
+                    <DataListItem
+                      item={item}
+                      expireSeconds={expireSeconds}
+                      onFavorite={handleFavorite}
+                      onDelete={handleDelete}
+                      onImagePreview={handleImagePreview}
+                    />
+                  </Fragment>
+                ))}
+              </List>
+            )
           ) : (
-            <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
-              {listData.map((item, index) => (
-                <Fragment key={item.id}>
-                  {index > 0 && (
-                    <>
-                      <Divider
-                        variant="fullWidth"
-                        component="li"
-                        sx={{ display: { xs: 'block', sm: 'none' } }}
-                      />
-                      <Divider
-                        variant="inset"
-                        component="li"
-                        sx={{ display: { xs: 'none', sm: 'block' } }}
-                      />
-                    </>
-                  )}
-                  <DataListItem
-                    item={item}
-                    expireSeconds={expireSeconds}
-                    onFavorite={handleFavorite}
-                    onDelete={handleDelete}
-                    onImagePreview={handleImagePreview}
-                  />
-                </Fragment>
-              ))}
-            </List>
+            // 图片网格视图
+            <ImageGalleryView
+              images={getAllImages()}
+              onImagePreview={handleImagePreview}
+            />
           )}
         </Box>
       </Box>

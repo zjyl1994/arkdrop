@@ -54,6 +54,7 @@ export default defineConfig({
             'TextareaAutosize',
             'ImageList',
             'ImageListItem',
+            'ImageListItemBar',
             'SpeedDial',
             'SpeedDialIcon',
             'SpeedDialAction',
@@ -76,7 +77,8 @@ export default defineConfig({
             'CloudUpload',
             'Send',
             'Cancel',
-            'ClearAll'
+            'ClearAll',
+            'ZoomIn',
           ],
           '@mui/material/styles': [
              'styled'
