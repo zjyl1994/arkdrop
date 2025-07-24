@@ -59,7 +59,8 @@ export default defineConfig({
             'SpeedDialAction',
             'CssBaseline',
             'ThemeProvider',
-            'createTheme'
+            'createTheme',
+            'useMediaQuery'
           ],
           '@mui/icons-material': [
             'Download',

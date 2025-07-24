@@ -70,6 +70,7 @@
     "useImperativeHandle": true,
     "useInsertionEffect": true,
     "useLayoutEffect": true,
+    "useMediaQuery": true,
     "useMemo": true,
     "useReducer": true,
     "useRef": true,
