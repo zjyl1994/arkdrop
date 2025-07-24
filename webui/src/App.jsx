@@ -6,6 +6,7 @@ import AppNavBar from './compoments/AppNavBar';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { blue, indigo } from '@mui/material/colors';
+import './assets/scrollbar.css';
 
 const theme = createTheme({
   palette: {

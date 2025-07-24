@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -178,7 +177,8 @@ const HomePage = () => {
     if (message) {
       showMessage(message);
     }
-  }
+  };
+
   // 处理收藏操作
   const handleFavorite = async (id) => {
     try {
@@ -211,7 +211,7 @@ const HomePage = () => {
     });
   };
 
-  // Clear all data
+  // 处理清空操作
   const handleClean = async () => {
     setConfirmDialog({
       open: true,
@@ -240,219 +240,238 @@ const HomePage = () => {
 
   return (
     <>
-      <Container sx={{ mt: 11 }}>
-        {/* Snackbar组件 */}
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={handleSnackbarClose}
-          message={snackbarMessage}
-          action={
-            <IconButton
-              size="small"
-              aria-label="close"
-              color="inherit"
-              onClick={handleSnackbarClose}
+      <Box sx={{ 
+        height: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* AppBar占位空间 */}
+        <Box sx={{ height: '64px', flexShrink: 0 }} />
+        
+        {/* 可滚动的内容区域 */}
+        <Box 
+          className="scrollable-container"
+          sx={{ 
+            flex: 1, 
+            overflow: 'auto',
+            px: 3,
+            py: 2
+          }}
+        >
+          {listData.length === 0 ? (
+            <Paper
+              elevation={0}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                py: 8,
+                px: 2,
+                mt: 4,
+                backgroundColor: 'transparent'
+              }}
             >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          }
-        />
+              <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h5" color="text.primary" gutterBottom>
+                暂无数据
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
+                您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleOpenModal}
+              >
+                添加内容
+              </Button>
+            </Paper>
+          ) : (
+            <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+              {listData.map((item, index) => {
+                const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
+                const hasContent = item.content && item.content.trim().length > 0;
+                const hasAttachments = item.attachments.length > 0;
+                const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
 
-        {/* 添加Modal组件 */}
-        <CreatePostModal
-          open={modalOpen}
-          handleClose={handleCloseModal}
-          onSubmitSuccess={listChangeAction}
-        />
+                return (
+                  <React.Fragment key={item.id}>
+                    {index > 0 && <Divider variant="inset" component="li" />}
+                    <ListItem
+                      alignItems="flex-start"
+                      sx={{ pb: 0 }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar>
+                          {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
+                        </Avatar>
+                      </ListItemAvatar>
 
-        {/* 确认对话框 */}
-        <ConfirmDialog
-          open={confirmDialog.open}
-          onClose={handleCloseConfirmDialog}
-          onConfirm={confirmDialog.onConfirm}
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          confirmColor={confirmDialog.confirmColor || 'primary'}
-        />
+                      <ListItemText
+                        sx={{ pr: 2 }}
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Chip
+                                label={dateString}
+                                size="small"
+                                variant="outlined"
+                                sx={{ mr: 1 }}
+                              />
+                            </Box>
+                            <Box>
+                              <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
+                                {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                              </IconButton>
+                              <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        }
+                        secondary={
+                          <Typography component="div" variant="body2">
+                            {hasContent && (
+                              <Paper
+                                variant="outlined"
+                                sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
+                              >
+                                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {item.content}
+                                </Typography>
+                              </Paper>
+                            )}
 
-        {/* 图片预览模态框 */}
-        <ImagePreviewModal
-          open={imagePreview.open}
-          onClose={handleCloseImagePreview}
-          imageSrc={imagePreview.src}
-          imageAlt={imagePreview.alt}
-        />
+                            {imageList.length > 0 && (
+                              <Box sx={{ mt: 2 }}>
+                                <ImageList cols={2} rowHeight={164} variant="masonry" >
+                                  {imageList.map(file =>
+                                    <ImageListItem key={file.id}>
+                                      <img
+                                        src={`/files/${file.file_path}`}
+                                        alt={file.file_name}
+                                        loading="lazy"
+                                        onClick={() => handleImagePreview(`/files/${file.file_path}`, file.file_name)}
+                                        style={{ cursor: 'pointer' }}
+                                      />
+                                    </ImageListItem>
+                                  )}
+                                </ImageList>
+                              </Box>
+                            )}
 
-        {listData.length === 0 ? (
-          <Paper
-            elevation={0}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              py: 8,
-              px: 2,
-              mt: 4,
-              backgroundColor: 'transparent'
-            }}
+                            {item.attachments.length > 0 && (
+                              <Box sx={{ mt: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                                  附件 ({item.attachments.length})
+                                </Typography>
+                                <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
+                                  {item.attachments.map((file) => (
+                                    <ListItem
+                                      key={file.id}
+                                      component="div"
+                                      sx={{ py: 0.5 }}
+                                      secondaryAction={
+                                        <a
+                                          href={`/files/${file.file_path}`}
+                                          download={file.file_name}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{ textDecoration: 'none' }}
+                                        >
+                                          <IconButton size="small" aria-label="download">
+                                            <Download fontSize="small" />
+                                          </IconButton>
+                                        </a>
+                                      }
+                                    >
+                                      <ListItemIcon sx={{ minWidth: 32 }}>
+                                        {file.content_type.startsWith('image/') ?
+                                          <ImageIcon fontSize="small" /> :
+                                          <AttachmentIcon fontSize="small" />}
+                                      </ListItemIcon>
+                                      <ListItemText
+                                        primary={file.file_name}
+                                        secondary={formatFileSize(file.file_size)}
+                                        primaryTypographyProps={{
+                                          noWrap: true,
+                                          variant: 'body2',
+                                          sx: { fontSize: '0.875rem' }
+                                        }}
+                                        secondaryTypographyProps={{
+                                          variant: 'caption',
+                                          sx: { fontSize: '0.75rem' }
+                                        }}
+                                        sx={{
+                                          pr: 1,
+                                          '& .MuiListItemText-primary': {
+                                            maxWidth: { xs: '150px', sm: '200px', md: '300px' }
+                                          }
+                                        }}
+                                      />
+                                    </ListItem>
+                                  ))}
+                                </List>
+                              </Box>
+                            )}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          )}
+        </Box>
+      </Box>
+
+      {/* Snackbar组件 */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        action={
+          <IconButton
+            size="small"
+            aria-label="close"
+            color="inherit"
+            onClick={handleSnackbarClose}
           >
-            <InboxIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h5" color="text.primary" gutterBottom>
-              暂无数据
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
-              您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleOpenModal}
-            >
-              添加内容
-            </Button>
-          </Paper>
-        ) : (
-          <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
-            {listData.map((item, index) => {
-              const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
-              const hasContent = item.content && item.content.trim().length > 0;
-              const hasAttachments = item.attachments.length > 0;
-              const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
+      />
 
-              return (
-                <React.Fragment key={item.id}>
-                  {index > 0 && <Divider variant="inset" component="li" />}
-                  <ListItem
-                    alignItems="flex-start"
-                    sx={{ pb: 0 }}
-                  >
-                    <ListItemAvatar>
-                      <Avatar>
-                        {hasContent ? <TextSnippetIcon /> : hasAttachments ? (imageList.length > 0 ? <ImageIcon /> : <AttachmentIcon />) : <InboxIcon />}
-                      </Avatar>
-                    </ListItemAvatar>
+      {/* 添加Modal组件 */}
+      <CreatePostModal
+        open={modalOpen}
+        handleClose={handleCloseModal}
+        onSubmitSuccess={listChangeAction}
+      />
 
-                    <ListItemText
-                      sx={{ pr: 2 }}
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Chip
-                              label={dateString}
-                              size="small"
-                              variant="outlined"
-                              sx={{ mr: 1 }}
-                            />
-                          </Box>
-                          <Box>
-                            <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
-                              {item.favorite ? <StarIcon color="warning" fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-                            </IconButton>
-                            <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                      }
-                      secondary={
-                        <Typography component="div" variant="body2">
-                          {hasContent && (
-                            <Paper
-                              variant="outlined"
-                              sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
-                            >
-                              <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {item.content}
-                              </Typography>
-                            </Paper>
-                          )}
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={handleCloseConfirmDialog}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmColor={confirmDialog.confirmColor || 'primary'}
+      />
 
-                          {imageList.length > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                              <ImageList cols={2} rowHeight={164} variant="masonry" >
-                                {imageList.map(file =>
-                                  <ImageListItem key={file.id}>
-                                    <img
-                                      src={`/files/${file.file_path}`}
-                                      alt={file.file_name}
-                                      loading="lazy"
-                                      onClick={() => handleImagePreview(`/files/${file.file_path}`, file.file_name)}
-                                      style={{ cursor: 'pointer' }}
-                                    />
-                                  </ImageListItem>
-                                )}
-                              </ImageList>
-                            </Box>
-                          )}
-
-                          {item.attachments.length > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                附件 ({item.attachments.length})
-                              </Typography>
-                              <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
-                                {item.attachments.map((file) => (
-                                  <ListItem
-                                    key={file.id}
-                                    component="div"
-                                    sx={{ py: 0.5 }}
-                                    secondaryAction={
-                                      <a
-                                        href={`/files/${file.file_path}`}
-                                        download={file.file_name}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ textDecoration: 'none' }}
-                                      >
-                                        <IconButton size="small" aria-label="download">
-                                          <Download fontSize="small" />
-                                        </IconButton>
-                                      </a>
-                                    }
-                                  >
-                                    <ListItemIcon sx={{ minWidth: 32 }}>
-                                      {file.content_type.startsWith('image/') ?
-                                        <ImageIcon fontSize="small" /> :
-                                        <AttachmentIcon fontSize="small" />}
-                                    </ListItemIcon>
-                                    <ListItemText
-                                      primary={file.file_name}
-                                      secondary={formatFileSize(file.file_size)}
-                                      primaryTypographyProps={{
-                                        noWrap: true,
-                                        variant: 'body2',
-                                        sx: { fontSize: '0.875rem' }
-                                      }}
-                                      secondaryTypographyProps={{
-                                        variant: 'caption',
-                                        sx: { fontSize: '0.75rem' }
-                                      }}
-                                      sx={{
-                                        pr: 1,
-                                        '& .MuiListItemText-primary': {
-                                          maxWidth: { xs: '150px', sm: '200px', md: '300px' }
-                                        }
-                                      }}
-                                    />
-                                  </ListItem>
-                                ))}
-                              </List>
-                            </Box>
-                          )}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                </React.Fragment>
-              );
-            })}
-          </List>
-        )}
-      </Container>
+      {/* 图片预览模态框 */}
+      <ImagePreviewModal
+        open={imagePreview.open}
+        onClose={handleCloseImagePreview}
+        imageSrc={imagePreview.src}
+        imageAlt={imagePreview.alt}
+      />
 
       {/* 添加SpeedDial浮动操作按钮 */}
       <SpeedDial
