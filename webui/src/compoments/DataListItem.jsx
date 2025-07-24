@@ -1,4 +1,6 @@
 import dayjs from 'dayjs';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 // Format file size with appropriate unit
 const formatFileSize = (bytes) => {
@@ -53,6 +55,13 @@ const DataListItem = ({
   const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
   const ttlInfo = calculateTTLProgress(item);
 
+  // Calculate responsive image preview columns
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+  const isSm = useMediaQuery(theme.breakpoints.only('sm'));
+  const isMd = useMediaQuery(theme.breakpoints.only('md'));
+  const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
+
   return (
     <ListItem
       alignItems="flex-start"
@@ -106,9 +115,22 @@ const DataListItem = ({
 
             {imageList.length > 0 && (
               <Box sx={{ mt: 2 }}>
-                <ImageList variant="quilted"
-                  cols={useMediaQuery(theme => theme.breakpoints.up('md')) ? 3 : 2}
-                  rowHeight={155}>
+                <ImageList 
+                  variant="masonry" 
+                  cols={imagePreviewCol} 
+                  gap={8}
+                  sx={{
+                    // Prevent layout shift during loading
+                    '& .MuiImageListItem-root': {
+                      overflow: 'hidden',
+                      borderRadius: 1,
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        transition: 'transform 0.2s ease-in-out'
+                      }
+                    }
+                  }}
+                >
                   {imageList.map(file =>
                     <ImageListItem key={file.id}>
                       <img
@@ -116,7 +138,12 @@ const DataListItem = ({
                         alt={file.file_name}
                         loading="lazy"
                         onClick={() => onImagePreview(`/files/${file.file_path}`, file.file_name)}
-                        style={{ cursor: 'pointer' }}
+                        style={{ 
+                          cursor: 'pointer',
+                          width: '100%',
+                          height: 'auto',
+                          display: 'block'
+                        }}
                       />
                     </ImageListItem>
                   )}
