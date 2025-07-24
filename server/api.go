@@ -54,7 +54,10 @@ func ListParcel(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(parcels)
+	return c.JSON(fiber.Map{
+		"expire_seconds": int(vars.AutoExpire.Seconds()),
+		"list":           parcels,
+	})
 }
 
 func DeleteParcel(c *fiber.Ctx) error {

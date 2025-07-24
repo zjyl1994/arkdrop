@@ -20,6 +20,7 @@ const formatFileSize = (bytes) => {
 const HomePage = () => {
   const wsRef = useRef(null);
   const [listData, setListData] = useState([]);
+  const [expireSeconds, setExpireSeconds] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -88,7 +89,8 @@ const HomePage = () => {
         const res = await axios.get('/api/list', {
           withCredentials: true,
         });
-        setListData(res.data);
+        setListData(res.data.list);
+        setExpireSeconds(res.data.expire_seconds);
       } catch (error) {
         console.error('Failed to fetch data', error);
       }
@@ -139,7 +141,8 @@ const HomePage = () => {
       const res = await axios.get('/api/list', {
         withCredentials: true,
       });
-      setListData(res.data);
+      setListData(res.data.list);
+      setExpireSeconds(res.data.expire_seconds);
     }
 
     // 如果有消息，则显示
@@ -209,20 +212,20 @@ const HomePage = () => {
 
   return (
     <>
-      <Box sx={{ 
-        height: '100vh', 
-        display: 'flex', 
+      <Box sx={{
+        height: '100vh',
+        display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
         {/* AppBar占位空间 */}
         <Box sx={{ height: '64px', flexShrink: 0 }} />
-        
+
         {/* 可滚动的内容区域 */}
-        <Box 
+        <Box
           className="scrollable-container"
-          sx={{ 
-            flex: 1, 
+          sx={{
+            flex: 1,
             overflow: 'auto',
             px: 3,
             py: 2
@@ -271,15 +274,15 @@ const HomePage = () => {
                   <Fragment key={item.id}>
                     {index > 0 && (
                       <>
-                        <Divider 
-                          variant="fullWidth" 
-                          component="li" 
-                          sx={{ display: { xs: 'block', sm: 'none' } }} 
+                        <Divider
+                          variant="fullWidth"
+                          component="li"
+                          sx={{ display: { xs: 'block', sm: 'none' } }}
                         />
-                        <Divider 
-                          variant="inset" 
-                          component="li" 
-                          sx={{ display: { xs: 'none', sm: 'block' } }} 
+                        <Divider
+                          variant="inset"
+                          component="li"
+                          sx={{ display: { xs: 'none', sm: 'block' } }}
                         />
                       </>
                     )}
@@ -294,7 +297,7 @@ const HomePage = () => {
                       </ListItemAvatar>
 
                       <ListItemText
-                        sx={{ 
+                        sx={{
                           pr: 2,
                           ml: { xs: 0, sm: 0 }
                         }}
@@ -310,11 +313,11 @@ const HomePage = () => {
                             </Box>
                             <Box>
                               <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
-                                 {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
-                               </IconButton>
-                               <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
-                                 <Delete fontSize="small" />
-                               </IconButton>
+                                {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
+                              </IconButton>
+                              <IconButton size="small" aria-label="delete" onClick={() => handleDelete(item.id)}>
+                                <Delete fontSize="small" />
+                              </IconButton>
                             </Box>
                           </Box>
                         }
@@ -375,10 +378,10 @@ const HomePage = () => {
                                       }
                                     >
                                       <ListItemIcon sx={{ minWidth: 32 }}>
-                                         {file.content_type.startsWith('image/') ?
-                                           <Image fontSize="small" /> :
-                                           <Attachment fontSize="small" />}
-                                       </ListItemIcon>
+                                        {file.content_type.startsWith('image/') ?
+                                          <Image fontSize="small" /> :
+                                          <Attachment fontSize="small" />}
+                                      </ListItemIcon>
                                       <ListItemText
                                         primary={file.file_name}
                                         secondary={formatFileSize(file.file_size)}
