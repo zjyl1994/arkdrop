@@ -16,16 +16,11 @@
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
     "axios": "^1.10.0",
-    "bamboo.css": "^1.4.0",
-    "bootstrap": "^5.3.7",
     "dayjs": "^1.11.13",
     "js-cookie": "^3.0.5",
     "react": "^19.1.0",
-    "react-bootstrap": "^2.10.10",
-    "react-bootstrap-icons": "^1.11.6",
     "react-dom": "^19.1.0",
     "react-router-dom": "6",
-    "react-toastify": "^11.0.5",
     "vite-plugin-pwa": "^1.0.1"
   },
   "devDependencies": {

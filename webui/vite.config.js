@@ -48,6 +48,8 @@ export default defineConfig({
             'Avatar',
             'Divider',
             'Chip',
+            'Tooltip',
+            'CircularProgress',
             'LinearProgress',
             'TextareaAutosize',
             'ImageList',

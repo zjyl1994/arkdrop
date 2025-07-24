@@ -132,6 +132,16 @@ const HomePage = () => {
     };
   }, []);
 
+  // 定期更新TTL进度条
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 强制重新渲染以更新TTL进度
+      setListData(prevData => [...prevData]);
+    }, 1000); // 每秒更新一次
+
+    return () => clearInterval(interval);
+  }, []);
+
   const listChangeAction = async (message, isError) => {
     // Send message via WebSocket
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -204,6 +214,35 @@ const HomePage = () => {
     });
   };
 
+  // 计算TTL进度
+  const calculateTTLProgress = (item) => {
+    if (item.favorite || !expireSeconds || expireSeconds === 0) return null;
+
+    const now = Math.floor(Date.now() / 1000);
+    const expireTime = item.updated_at + expireSeconds;
+    const remainingTime = expireTime - now;
+
+    if (remainingTime <= 0) return { progress: 0, timeLeft: '已过期' };
+
+    const progress = (remainingTime / expireSeconds) * 100;
+
+    // 格式化剩余时间
+    const hours = Math.floor(remainingTime / 3600);
+    const minutes = Math.floor((remainingTime % 3600) / 60);
+    const seconds = remainingTime % 60;
+
+    let timeLeft = '';
+    if (hours > 0) {
+      timeLeft = `${hours}小时${minutes}分钟`;
+    } else if (minutes > 0) {
+      timeLeft = `${minutes}分钟${seconds}秒`;
+    } else {
+      timeLeft = `${seconds}秒`;
+    }
+
+    return { progress, timeLeft };
+  };
+
   // SpeedDial操作
   const actions = [
     { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
@@ -269,6 +308,7 @@ const HomePage = () => {
                 const hasContent = item.content && item.content.trim().length > 0;
                 const hasAttachments = item.attachments.length > 0;
                 const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
+                const ttlInfo = calculateTTLProgress(item);
 
                 return (
                   <Fragment key={item.id}>
@@ -304,12 +344,14 @@ const HomePage = () => {
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Chip
-                                label={dateString}
-                                size="small"
-                                variant="outlined"
-                                sx={{ mr: 1 }}
-                              />
+                              <Tooltip title={ttlInfo ? `剩余时间: ${ttlInfo.timeLeft} (${Math.round(ttlInfo.progress)}%)` : '永不过期'} arrow>
+                                <Chip
+                                  label={dateString}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ mr: 1 }}
+                                />
+                              </Tooltip>
                             </Box>
                             <Box>
                               <IconButton size="small" aria-label="favorite" onClick={() => handleFavorite(item.id)}>
