@@ -269,19 +269,35 @@ const HomePage = () => {
 
                 return (
                   <Fragment key={item.id}>
-                    {index > 0 && <Divider variant="inset" component="li" />}
+                    {index > 0 && (
+                      <>
+                        <Divider 
+                          variant="fullWidth" 
+                          component="li" 
+                          sx={{ display: { xs: 'block', sm: 'none' } }} 
+                        />
+                        <Divider 
+                          variant="inset" 
+                          component="li" 
+                          sx={{ display: { xs: 'none', sm: 'block' } }} 
+                        />
+                      </>
+                    )}
                     <ListItem
                       alignItems="flex-start"
                       sx={{ pb: 0 }}
                     >
-                      <ListItemAvatar>
+                      <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' } }}>
                         <Avatar>
                           {hasContent ? <TextSnippet /> : hasAttachments ? (imageList.length > 0 ? <Image /> : <Attachment />) : <Inbox />}
                         </Avatar>
                       </ListItemAvatar>
 
                       <ListItemText
-                        sx={{ pr: 2 }}
+                        sx={{ 
+                          pr: 2,
+                          ml: { xs: 0, sm: 0 }
+                        }}
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
