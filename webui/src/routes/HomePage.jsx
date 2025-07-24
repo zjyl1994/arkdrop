@@ -84,7 +84,7 @@ const HomePage = () => {
         const res = await axios.get('/api/list', {
           withCredentials: true,
         });
-        setListData(res.data.list);
+        setListData(Array.isArray(res.data.list) ? res.data.list : []);
         setExpireSeconds(res.data.expire_seconds);
       } catch (error) {
         console.error('Failed to fetch data', error);
@@ -146,7 +146,7 @@ const HomePage = () => {
       const res = await axios.get('/api/list', {
         withCredentials: true,
       });
-      setListData(res.data.list);
+      setListData(Array.isArray(res.data.list) ? res.data.list : []);
       setExpireSeconds(res.data.expire_seconds);
     }
 

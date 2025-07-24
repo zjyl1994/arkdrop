@@ -12,6 +12,17 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
+// Format file size with appropriate unit
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
 const modalStyle = {
   position: 'absolute',
   top: '50%',
@@ -37,12 +48,12 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
     const handlePaste = async (e) => {
       // 只在模态框打开时处理粘贴事件
       if (!open) return;
-      
+
       const items = e.clipboardData?.items;
       if (!items) return;
-      
+
       const imageFiles = [];
-      
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.type.indexOf('image') !== -1) {
@@ -58,43 +69,26 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
           }
         }
       }
-      
+
       if (imageFiles.length > 0) {
         // 将粘贴的图片添加到现有文件列表中
         setFiles(prevFiles => [...prevFiles, ...imageFiles]);
-        
+
         // 显示成功消息
         if (onSubmitSuccess) {
           onSubmitSuccess(`已从剪贴板添加 ${imageFiles.length} 张图片`, false);
         }
       }
     };
-    
+
     // 添加全局粘贴事件监听器
     document.addEventListener('paste', handlePaste);
-    
+
     // 清理函数
     return () => {
       document.removeEventListener('paste', handlePaste);
     };
   }, [open, onSubmitSuccess]);
-
-  // 计算文件总容量
-  const getTotalFileSize = () => {
-    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-    if (totalBytes === 0) return '';
-    
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = totalBytes;
-    let unitIndex = 0;
-    
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-    
-    return ` (${size.toFixed(1)} ${units[unitIndex]})`;
-  };
 
   const handleSubmit = async () => {
     if (!content && files.length === 0) {
@@ -110,7 +104,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
     try {
       setUploading(true);
       setUploadProgress(0);
-      
+
       const response = await axios.post('/api/create', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -129,7 +123,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
       setFiles([]);
       setFileInputKey(Date.now());
       setUploadProgress(0);
-      
+
       // 关闭Modal并通知父组件刷新列表
       handleClose();
       if (onSubmitSuccess) onSubmitSuccess('提交成功: ' + JSON.stringify(response.data));
@@ -164,7 +158,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
           </Typography>
         </Box>
-        
+
         {/* Upload progress bar */}
         {uploading && (
           <Box sx={{ width: '100%', mb: 2 }}>
@@ -174,132 +168,109 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             <LinearProgress variant="determinate" value={uploadProgress} />
           </Box>
         )}
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          alignItems: { xs: 'stretch', sm: 'center' }
+
+
+        {/* 文件列表显示 */}
+        {files.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+              已选择的文件:
+            </Typography>
+            <Box sx={{ maxHeight: '150px', overflow: 'auto' }}>
+              {files.map((file, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 1,
+                    mb: 0.5,
+                    bgcolor: 'rgba(0, 0, 0, 0.04)',
+                    borderRadius: 1,
+                    border: '1px solid rgba(0, 0, 0, 0.12)'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    {file.type.startsWith('image/') ? (
+                      <Image sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
+                    ) : (
+                      <Attachment sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
+                    )}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1
+                      }}
+                    >
+                      {file.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      ({formatFileSize(file.size)})
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+                    }}
+                    disabled={uploading}
+                    sx={{ ml: 1 }}
+                  >
+                    <Close fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* 操作按钮组 */}
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          justifyContent: 'space-between'
         }}>
-          {/* 上传按钮单独一排 */}
-          <Box sx={{ 
-            display: 'flex',
-            justifyContent: { xs: 'center', sm: 'flex-start' },
-            mb: { xs: 1, sm: 0 },
-            mr: { xs: 0, sm: 'auto' }
+          {/* 上传按钮 */}
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<CloudUpload />}
+            disabled={uploading}
+          >
+            选择文件
+            <VisuallyHiddenInput
+              type="file"
+              onChange={(e) => setFiles(Array.from(e.target.files))}
+              key={fileInputKey}
+              multiple
+              disabled={uploading}
+            />
+          </Button>
+
+          <Box sx={{
+            display: 'inline-flex',
+            gap: 1,
+            justifyContent: 'flex-end'
           }}>
             <Button
-              component="label"
               variant="outlined"
-              color="secondary"
-              startIcon={<CloudUpload />}
-              fullWidth={{ xs: true, sm: false }}
-              disabled={uploading}
-              sx={{ 
-                minWidth: { xs: '100%', sm: '200px' },
-                fontSize: { xs: '0.875rem', sm: '0.875rem' }
-              }}
-            >
-              {files.length > 0 
-                ? `已选择 ${files.length} 个文件${getTotalFileSize()}`
-                : "上传文件"
-              }
-              <VisuallyHiddenInput
-                type="file"
-                onChange={(e) => setFiles(Array.from(e.target.files))}
-                key={fileInputKey}
-                multiple
-                disabled={uploading}
-              />
-            </Button>
-          </Box>
-          
-          {/* 文件列表显示 */}
-          {files.length > 0 && (
-            <Box sx={{ width: '100%', mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                已选择的文件:
-              </Typography>
-              <Box sx={{ maxHeight: '150px', overflow: 'auto' }}>
-                {files.map((file, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      p: 1,
-                      mb: 0.5,
-                      bgcolor: 'rgba(0, 0, 0, 0.04)',
-                      borderRadius: 1,
-                      border: '1px solid rgba(0, 0, 0, 0.12)'
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                      {file.type.startsWith('image/') ? (
-                        <Image sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
-                      ) : (
-                        <Attachment sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
-                      )}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          flex: 1
-                        }}
-                      >
-                        {file.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                        ({(file.size / 1024).toFixed(1)} KB)
-                      </Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
-                      }}
-                      disabled={uploading}
-                      sx={{ ml: 1 }}
-                    >
-                      <Close fontSize="small" />
-                    </IconButton>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-          
-          {/* 操作按钮组 */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1,
-            justifyContent: { xs: 'center', sm: 'flex-end' },
-            flexDirection: { xs: 'row', sm: 'row' }
-          }}>
-            <Button 
-              variant="outlined" 
               startIcon={<Cancel />}
               onClick={handleClose}
               disabled={uploading}
-              sx={{ 
-                color: 'text.secondary',
-                flex: { xs: 1, sm: 'none' },
-                minWidth: { xs: 'auto', sm: '80px' }
-              }}
             >
               取消
             </Button>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               startIcon={<Send />}
               onClick={handleSubmit}
               disabled={uploading}
-              sx={{ 
+              sx={{
                 bgcolor: 'primary.main',
-                flex: { xs: 1, sm: 'none' },
-                minWidth: { xs: 'auto', sm: '80px' },
                 '&:hover': {
                   bgcolor: 'primary.dark'
                 }
