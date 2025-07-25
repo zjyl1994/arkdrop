@@ -1,11 +1,12 @@
 FROM golang:alpine AS builder
-RUN apk --no-cache add git ca-certificates gcc g++ make
+RUN --mount=type=cache,target=/var/cache/apk apk add git ca-certificates gcc g++ make pnpm
 WORKDIR /code
 COPY . .
-RUN make
+ARG GOPROXY=https://proxy.golang.org,direct
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/pnpm_cache make
 
 FROM alpine:latest AS prod
-RUN apk --no-cache add ca-certificates
+RUN --mount=type=cache,target=/var/cache/apk apk add ca-certificates
 WORKDIR /app
 VOLUME /app/data
 ENV ARKDROP_DATA_DIR=/app/data
