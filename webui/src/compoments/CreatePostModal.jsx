@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -42,6 +45,9 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.only('xs'));
 
   // 处理剪贴板粘贴事件
   useEffect(() => {
@@ -154,9 +160,11 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             placeholder="输入内容..."
             disabled={uploading}
           />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
-          </Typography>
+          {!isXs &&
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
+            </Typography>
+          }
         </Box>
 
         {/* Upload progress bar */}
@@ -238,7 +246,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
           <Button
             component="label"
             variant="outlined"
-            startIcon={<CloudUpload />}
+            startIcon={!isXs && <CloudUpload />}
             disabled={uploading}
           >
             选择文件
@@ -258,7 +266,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
           }}>
             <Button
               variant="outlined"
-              startIcon={<Cancel />}
+              startIcon={!isXs && <Cancel />}
               onClick={handleClose}
               disabled={uploading}
             >
@@ -266,7 +274,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
             </Button>
             <Button
               variant="contained"
-              startIcon={<Send />}
+              startIcon={!isXs && <Send />}
               onClick={handleSubmit}
               disabled={uploading}
               sx={{
