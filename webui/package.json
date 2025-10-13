@@ -10,12 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cap.js/wasm": "^0.0.6",
     "@cap.js/widget": "^0.1.30",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource/lato": "^5.2.7",
-    "@fontsource/roboto": "^5.2.6",
-    "@fontsource/ubuntu-mono": "^5.2.8",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
     "axios": "^1.10.0",

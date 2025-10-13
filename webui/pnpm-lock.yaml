@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@cap.js/wasm':
+        specifier: ^0.0.6
+        version: 0.0.6
       '@cap.js/widget':
         specifier: ^0.1.30
         version: 0.1.30
@@ -20,12 +23,6 @@ importers:
       '@fontsource/lato':
         specifier: ^5.2.7
         version: 5.2.7
-      '@fontsource/roboto':
-        specifier: ^5.2.6
-        version: 5.2.6
-      '@fontsource/ubuntu-mono':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@mui/icons-material':
         specifier: ^7.2.0
         version: 7.2.0(@mui/material@7.2.0(@emotion/react@11.14.0(@types/react@19.1.8)(react@19.1.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.1.8)(react@19.1.0))(@types/react@19.1.8)(react@19.1.0))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@types/react@19.1.8)(react@19.1.0)
@@ -604,6 +601,9 @@ packages:
     resolution: {integrity: sha512-x0LvFTekgSX+83TI28Y9wYPUfzrnl2aT5+5QLnO6v7mSJYtEEevuDRN0F0uSHRk1G1IWZC43o00Y0xDDrpBGPQ==}
     engines: {node: '>=6.9.0'}
 
+  '@cap.js/wasm@0.0.6':
+    resolution: {integrity: sha512-QhQPZ6QKQeUdjhPM1I6Y3TKhc4Q59wfFHGpkwUW1BYqHlaLUnsMvHX0c1Bt45ZDBzKD0cYj7V7fdHYkPNKN8MQ==}
+
   '@cap.js/widget@0.1.30':
     resolution: {integrity: sha512-qvDSzMal7LL/wGMtSAitvOa2tu9Zw4xeceOnSk9Csfw6Odk+UdGwRnsyt0ZzocDPrP7gPrV0fnAU4eNmHmXDKg==}
 
@@ -857,12 +857,6 @@ packages:
 
   '@fontsource/lato@5.2.7':
     resolution: {integrity: sha512-k5mum1ADbDW5cTw1Ett1eQVWeoZ6gq0ct6SFBibEhB4LRxhniChJZTBgd6ph5yBxLkN1fcnsnmicBNA4S/3nbw==}
-
-  '@fontsource/roboto@5.2.6':
-    resolution: {integrity: sha512-hzarG7yAhMoP418smNgfY4fO7UmuUEm5JUtbxCoCcFHT0hOJB+d/qAEyoNjz7YkPU5OjM2LM8rJnW8hfm0JLaA==}
-
-  '@fontsource/ubuntu-mono@5.2.8':
-    resolution: {integrity: sha512-N4nT8+GYWWcDODVSBLU4f3PycZQH9YIF6SypDI0rti3HrLqcXFS9u6wMvAd9vx1FmjAQkYv7Ld9CZ8XYTEOD0A==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -3263,6 +3257,8 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
+  '@cap.js/wasm@0.0.6': {}
+
   '@cap.js/widget@0.1.30': {}
 
   '@emotion/babel-plugin@11.13.5':
@@ -3471,10 +3467,6 @@ snapshots:
       levn: 0.4.1
 
   '@fontsource/lato@5.2.7': {}
-
-  '@fontsource/roboto@5.2.6': {}
-
-  '@fontsource/ubuntu-mono@5.2.8': {}
 
   '@humanfs/core@0.19.1': {}
 
