@@ -1,19 +1,24 @@
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Checkbox, FormControlLabel } from '@mui/material';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [errMsg, setErrMsg] = useState('');
+  const [remember, setRemember] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('/api/login', {
-        password: password
-      }, {
+      const form = new URLSearchParams();
+      form.append('password', password);
+      form.append('remember', remember ? '1' : '0');
+
+      const response = await axios.post('/api/login', form, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        },
+        withCredentials: true
       });
 
       const resp = response.data;
@@ -59,6 +64,18 @@ export default function LoginPage() {
           onKeyDown={handleKeyDown}
           autoFocus
         />
+
+        <Box width="100%" sx={{ mt: 1 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+            }
+            label="Remember Me"
+          />
+        </Box>
 
         {errMsg && (
           <Box width="100%">

@@ -1,39 +1,46 @@
 package server
 
 import (
-	"crypto/subtle"
-	"time"
+    "crypto/subtle"
+    "time"
 
-	jwtware "github.com/gofiber/contrib/jwt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/zjyl1994/arkdrop/vars"
+    jwtware "github.com/gofiber/contrib/jwt"
+    "github.com/gofiber/fiber/v2"
+    "github.com/golang-jwt/jwt/v5"
+    "github.com/zjyl1994/arkdrop/vars"
 )
 
 func LoginHandler(c *fiber.Ctx) error {
-	inputPass := c.FormValue("password")
+    inputPass := c.FormValue("password")
+    remember := c.FormValue("remember")
 
 	if subtle.ConstantTimeCompare([]byte(inputPass), []byte(vars.Password)) == 0 {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	exp := time.Now().Add(vars.JWT_TOKEN_EXPIRE)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"exp": exp.Unix(),
-		})
+    // Default token expire duration
+    expireDuration := vars.JWT_TOKEN_EXPIRE
+    // If remember me is enabled, extend to one year
+    if remember == "1" || remember == "true" {
+        expireDuration = 365 * 24 * time.Hour
+    }
+    exp := time.Now().Add(expireDuration)
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+        jwt.MapClaims{
+            "exp": exp.Unix(),
+        })
 
 	tokenString, err := token.SignedString([]byte(vars.Password))
 	if err != nil {
 		return err
 	}
-	c.Cookie(&fiber.Cookie{
-		Name:    "droptoken",
-		Value:   tokenString,
-		Expires: exp,
-		MaxAge:  int(vars.JWT_TOKEN_EXPIRE.Seconds()),
-	})
-	return c.SendString(tokenString)
+    c.Cookie(&fiber.Cookie{
+        Name:    "droptoken",
+        Value:   tokenString,
+        Expires: exp,
+        MaxAge:  int(expireDuration.Seconds()),
+    })
+    return c.SendString(tokenString)
 }
 
 func AuthMiddleware() fiber.Handler {

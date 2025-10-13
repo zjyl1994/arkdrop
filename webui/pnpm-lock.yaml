@@ -14,9 +14,15 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.1
         version: 11.14.1(@emotion/react@11.14.0(@types/react@19.1.8)(react@19.1.0))(@types/react@19.1.8)(react@19.1.0)
+      '@fontsource/lato':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@fontsource/roboto':
         specifier: ^5.2.6
         version: 5.2.6
+      '@fontsource/ubuntu-mono':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@mui/icons-material':
         specifier: ^7.2.0
         version: 7.2.0(@mui/material@7.2.0(@emotion/react@11.14.0(@types/react@19.1.8)(react@19.1.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.1.8)(react@19.1.0))(@types/react@19.1.8)(react@19.1.0))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@types/react@19.1.8)(react@19.1.0)
@@ -843,8 +849,14 @@ packages:
     resolution: {integrity: sha512-1+WqvgNMhmlAambTvT3KPtCl/Ibr68VldY2XY40SL1CE0ZXiakFR/cbTspaF5HsnpDMvcYYoJHfl4980NBjGag==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@fontsource/lato@5.2.7':
+    resolution: {integrity: sha512-k5mum1ADbDW5cTw1Ett1eQVWeoZ6gq0ct6SFBibEhB4LRxhniChJZTBgd6ph5yBxLkN1fcnsnmicBNA4S/3nbw==}
+
   '@fontsource/roboto@5.2.6':
     resolution: {integrity: sha512-hzarG7yAhMoP418smNgfY4fO7UmuUEm5JUtbxCoCcFHT0hOJB+d/qAEyoNjz7YkPU5OjM2LM8rJnW8hfm0JLaA==}
+
+  '@fontsource/ubuntu-mono@5.2.8':
+    resolution: {integrity: sha512-N4nT8+GYWWcDODVSBLU4f3PycZQH9YIF6SypDI0rti3HrLqcXFS9u6wMvAd9vx1FmjAQkYv7Ld9CZ8XYTEOD0A==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2254,6 +2266,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -3449,7 +3462,11 @@ snapshots:
       '@eslint/core': 0.15.1
       levn: 0.4.1
 
+  '@fontsource/lato@5.2.7': {}
+
   '@fontsource/roboto@5.2.6': {}
+
+  '@fontsource/ubuntu-mono@5.2.8': {}
 
   '@humanfs/core@0.19.1': {}
 
