@@ -3,6 +3,7 @@ package vars
 import (
 	"time"
 
+	"github.com/zjyl1994/cap-go"
 	"gorm.io/gorm"
 )
 
@@ -13,7 +14,8 @@ var (
 	Password   string
 	AutoExpire time.Duration
 
-	DB *gorm.DB
+	DB          *gorm.DB
+	CapInstance cap.ICap
 )
 
 const (

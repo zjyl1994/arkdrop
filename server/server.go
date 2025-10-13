@@ -21,6 +21,8 @@ func Run(listen string) error {
 	apiGroup := app.Group("/api", AuthMiddleware())
 	apiGroup.Get("/health", HealthHandler)
 	apiGroup.Post("/login", LoginHandler)
+	apiGroup.Post("/cap/challenge", CreateChallenge)
+	apiGroup.Post("/cap/redeem", RedeemChallenge)
 	apiGroup.Post("/create", CreateParcel)
 	apiGroup.Post("/delete", DeleteParcel)
 	apiGroup.Post("/clean", CleanParcel)

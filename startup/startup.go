@@ -13,6 +13,7 @@ import (
 	"github.com/zjyl1994/arkdrop/service"
 	"github.com/zjyl1994/arkdrop/utils"
 	"github.com/zjyl1994/arkdrop/vars"
+	"github.com/zjyl1994/cap-go"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -30,6 +31,7 @@ func Start() (err error) {
 		return err
 	}
 	vars.Password = os.Getenv("ARKDROP_PASSWORD")
+	vars.CapInstance = cap.NewCap(utils.NewFreeCacheStorage(50 * 1024))
 
 	autoExpireDuration := utils.COALESCE(os.Getenv("ARKDROP_AUTO_EXPIRE"), "1w")
 	vars.AutoExpire, err = utils.ParseDuration(autoExpireDuration)
