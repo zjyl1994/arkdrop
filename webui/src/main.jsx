@@ -7,7 +7,9 @@ import '@fontsource/lato/700.css';
 
 // 使用本地 CAP WASM，不从 CDN 加载
 if (typeof window !== 'undefined') {
-  window.CAP_CUSTOM_WASM_URL = '/cap/cap_wasm.js';
+  // 使用绝对地址，避免 Worker 中的模块解析错误
+  const wasmUrl = new URL('/cap/cap_wasm.js', window.location.origin).toString();
+  window.CAP_CUSTOM_WASM_URL = wasmUrl;
 }
 
 createRoot(document.getElementById('root')).render(
