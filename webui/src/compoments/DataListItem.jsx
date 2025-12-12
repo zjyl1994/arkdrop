@@ -63,14 +63,74 @@ const DataListItem = ({
   const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const handleCopyContent = async () => {
-    if (item.content) {
-      try {
-        await navigator.clipboard.writeText(item.content);
+    try {
+      const clipboardData = {};
+      const blobs = [];
+
+      // Add text content if available
+      if (hasContent) {
+        const textBlob = new Blob([item.content], { type: 'text/plain' });
+        clipboardData['text/plain'] = textBlob;
+        blobs.push(textBlob);
+      }
+
+      // Add first image if available
+      if (imageList.length > 0) {
+        const imageFile = imageList[0];
+        const imageUrl = `/files/${imageFile.file_path}`;
+        
+        try {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = imageUrl;
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          if (imageBlob) {
+            clipboardData['image/png'] = imageBlob;
+            blobs.push(imageBlob);
+          }
+        } catch (imgError) {
+          console.error('Failed to process image for clipboard:', imgError);
+        }
+      }
+
+      if (Object.keys(clipboardData).length > 0) {
+        await navigator.clipboard.write([new ClipboardItem(clipboardData)]);
+        
+        if (hasContent && imageList.length > 0) {
+          setSnackbarMessage('文本和图片已复制到剪贴板');
+        } else if (hasContent) {
+          setSnackbarMessage('文本内容已复制到剪贴板');
+        } else {
+          setSnackbarMessage('图片已复制到剪贴板');
+        }
         setSnackbarOpen(true);
-      } catch (err) {
-        console.error('Failed to copy text: ', err);
+      }
+    } catch (err) {
+      console.error('Failed to copy content: ', err);
+      // Fallback for simple text copy if ClipboardItem fails (e.g. unsupported browser)
+      if (hasContent) {
+        try {
+          await navigator.clipboard.writeText(item.content);
+          setSnackbarMessage('文本内容已复制到剪贴板 (仅文本)');
+          setSnackbarOpen(true);
+        } catch (fallbackErr) {
+           console.error('Fallback copy failed:', fallbackErr);
+        }
       }
     }
   };
@@ -91,7 +151,7 @@ const DataListItem = ({
         open={snackbarOpen}
         autoHideDuration={2000}
         onClose={handleSnackbarClose}
-        message="内容已复制到剪贴板"
+        message={snackbarMessage || "内容已复制到剪贴板"}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
       <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' } }}>
@@ -118,12 +178,12 @@ const DataListItem = ({
               </Tooltip>
             </Box>
             <Box>
-              {hasContent && (
-                <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容">
-                  <ContentCopy fontSize="small" />
-                </IconButton>
-              )}
-              <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)}>
+              {(hasContent || imageList.length > 0) && (
+                 <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容">
+                   <ContentCopy fontSize="small" />
+                 </IconButton>
+               )}
+                <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)}>
                 {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
               </IconButton>
               <IconButton size="small" aria-label="delete" onClick={() => onDelete(item.id)}>
