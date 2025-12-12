@@ -178,15 +178,15 @@ const DataListItem = ({
               </Tooltip>
             </Box>
             <Box>
+              <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)} title={item.favorite ? "取消收藏" : "收藏"}>
+                {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
+              </IconButton>
               {(hasContent || imageList.length > 0) && (
                  <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容">
                    <ContentCopy fontSize="small" />
                  </IconButton>
                )}
-                <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)}>
-                {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
-              </IconButton>
-              <IconButton size="small" aria-label="delete" onClick={() => onDelete(item.id)}>
+              <IconButton size="small" aria-label="delete" onClick={() => onDelete(item.id)} title="删除">
                 <Delete fontSize="small" />
               </IconButton>
             </Box>
