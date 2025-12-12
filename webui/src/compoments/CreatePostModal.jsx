@@ -33,10 +33,13 @@ const modalStyle = {
   transform: 'translate(-50%, -50%)',
   width: '80%',
   maxWidth: 600,
+  maxHeight: '90vh',
   bgcolor: 'background.paper',
   boxShadow: 24,
-  p: 4,
   borderRadius: 2,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
 };
 
 const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
@@ -48,6 +51,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+
 
   // 处理剪贴板粘贴事件
   useEffect(() => {
@@ -149,95 +153,104 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
       aria-describedby="modal-to-create-new-post"
     >
       <Box sx={modalStyle}>
-        <Typography variant="h6" component="h2" mb={2}>
-          创建新内容
-        </Typography>
-        <Box width="100%" mb={2}>
-          <TextareaAutosize
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            style={{ width: '100%', minHeight: '100px' }}
-            placeholder="输入内容..."
-            disabled={uploading}
-          />
-          {!isXs &&
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
-            </Typography>
-          }
+        <Box sx={{ p: 4, pb: 2 }}>
+          <Typography variant="h6" component="h2">
+            创建新内容
+          </Typography>
         </Box>
-
-        {/* Upload progress bar */}
-        {uploading && (
-          <Box sx={{ width: '100%', mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              上传进度: {uploadProgress}%
-            </Typography>
-            <LinearProgress variant="determinate" value={uploadProgress} />
+        
+        <Box sx={{ p: 4, py: 0, overflowY: 'auto', flex: 1 }}>
+          <Box width="100%" mb={2}>
+            <TextareaAutosize
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              minRows={5}
+              maxRows={15}
+              style={{ width: '100%', resize: 'none' }}
+              placeholder="输入内容..."
+              disabled={uploading}
+            />
+            {!isXs &&
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
+              </Typography>
+            }
           </Box>
-        )}
 
-
-        {/* 文件列表显示 */}
-        {files.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-              已选择的文件:
-            </Typography>
-            <Box sx={{ maxHeight: '150px', overflow: 'auto' }}>
-              {files.map((file, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 1,
-                    mb: 0.5,
-                    bgcolor: 'rgba(0, 0, 0, 0.04)',
-                    borderRadius: 1,
-                    border: '1px solid rgba(0, 0, 0, 0.12)'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                    {file.type.startsWith('image/') ? (
-                      <Image sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
-                    ) : (
-                      <Attachment sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
-                    )}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1
-                      }}
-                    >
-                      {file.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      ({formatFileSize(file.size)})
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
-                    }}
-                    disabled={uploading}
-                    sx={{ ml: 1 }}
-                  >
-                    <Close fontSize="small" />
-                  </IconButton>
-                </Box>
-              ))}
+          {/* Upload progress bar */}
+          {uploading && (
+            <Box sx={{ width: '100%', mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                上传进度: {uploadProgress}%
+              </Typography>
+              <LinearProgress variant="determinate" value={uploadProgress} />
             </Box>
-          </Box>
-        )}
+          )}
+
+
+          {/* 文件列表显示 */}
+          {files.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                已选择的文件:
+              </Typography>
+              <Box sx={{ maxHeight: '150px', overflow: 'auto' }}>
+                {files.map((file, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1,
+                      mb: 0.5,
+                      bgcolor: 'rgba(0, 0, 0, 0.04)',
+                      borderRadius: 1,
+                      border: '1px solid rgba(0, 0, 0, 0.12)'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      {file.type.startsWith('image/') ? (
+                        <Image sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
+                      ) : (
+                        <Attachment sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1
+                        }}
+                      >
+                        {file.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        ({formatFileSize(file.size)})
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+                      }}
+                      disabled={uploading}
+                      sx={{ ml: 1 }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+        </Box>
 
         {/* 操作按钮组 */}
         <Box sx={{
+          p: 4,
+          pt: 2,
           display: 'flex',
           gap: 1,
           justifyContent: 'space-between'
