@@ -14,6 +14,7 @@
     "Close": true,
     "CloudUpload": true,
     "Container": true,
+    "ContentCopy": true,
     "CssBaseline": true,
     "Delete": true,
     "Dialog": true,

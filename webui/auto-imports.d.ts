@@ -20,6 +20,7 @@ declare global {
   const Close: typeof import('@mui/icons-material')['Close']
   const CloudUpload: typeof import('@mui/icons-material')['CloudUpload']
   const Container: typeof import('@mui/material')['Container']
+  const ContentCopy: typeof import('@mui/icons-material')['ContentCopy']
   const CssBaseline: typeof import('@mui/material')['CssBaseline']
   const Delete: typeof import('@mui/icons-material')['Delete']
   const Dialog: typeof import('@mui/material')['Dialog']

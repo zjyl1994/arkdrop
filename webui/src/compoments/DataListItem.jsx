@@ -62,11 +62,38 @@ const DataListItem = ({
   const isMd = useMediaQuery(theme.breakpoints.only('md'));
   const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  const handleCopyContent = async () => {
+    if (item.content) {
+      try {
+        await navigator.clipboard.writeText(item.content);
+        setSnackbarOpen(true);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+      }
+    }
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
+
   return (
     <ListItem
       alignItems="flex-start"
       sx={{ pb: 0 }}
     >
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={2000}
+        onClose={handleSnackbarClose}
+        message="内容已复制到剪贴板"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
       <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' } }}>
         <Avatar>
           {hasContent ? <TextSnippet /> : hasAttachments ? (imageList.length > 0 ? <Image /> : <Attachment />) : <Inbox />}
@@ -91,6 +118,11 @@ const DataListItem = ({
               </Tooltip>
             </Box>
             <Box>
+              {hasContent && (
+                <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容">
+                  <ContentCopy fontSize="small" />
+                </IconButton>
+              )}
               <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)}>
                 {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
               </IconButton>

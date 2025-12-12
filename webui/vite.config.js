@@ -79,6 +79,7 @@ export default defineConfig({
             'Cancel',
             'ClearAll',
             'ZoomIn',
+            'ContentCopy',
           ],
           '@mui/material/styles': [
              'styled'
