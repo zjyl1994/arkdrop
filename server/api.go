@@ -61,9 +61,32 @@ func cleanupSavedFiles(savedPaths []string) {
 	}
 }
 
+func parseOptionalBoolQuery(c *fiber.Ctx, key string) (*bool, error) {
+	rawValue := c.Query(key)
+	if rawValue == "" {
+		return nil, nil
+	}
+
+	parsedValue, err := strconv.ParseBool(rawValue)
+	if err != nil {
+		return nil, err
+	}
+
+	return &parsedValue, nil
+}
+
 func CreateParcel(c *fiber.Ctx) (err error) {
 	var parcel service.Parcel
 	parcel.Content = c.FormValue("content")
+	rawFavorite := c.FormValue("favorite")
+	if rawFavorite != "" {
+		parcel.Favorite, err = strconv.ParseBool(rawFavorite)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "invalid favorite value",
+			})
+		}
+	}
 	now := time.Now().Unix()
 	parcel.CreatedAt = now
 	parcel.UpdatedAt = now
@@ -120,7 +143,14 @@ func AddParcelAttachment(c *fiber.Ctx) error {
 }
 
 func ListParcel(c *fiber.Ctx) error {
-	parcels, err := parcelService.List()
+	favorite, err := parseOptionalBoolQuery(c, "favorite")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid favorite filter",
+		})
+	}
+
+	parcels, err := parcelService.List(favorite)
 	if err != nil {
 		return err
 	}
@@ -143,7 +173,19 @@ func DeleteParcel(c *fiber.Ctx) error {
 }
 
 func CleanParcel(c *fiber.Ctx) error {
-	err := parcelService.Clean()
+	favorite, err := parseOptionalBoolQuery(c, "favorite")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid favorite filter",
+		})
+	}
+
+	shouldCleanFavorite := false
+	if favorite != nil {
+		shouldCleanFavorite = *favorite
+	}
+
+	err = parcelService.Clean(shouldCleanFavorite)
 	if err != nil {
 		return err
 	}

@@ -165,7 +165,7 @@ const modalStyle = {
   overflow: 'hidden',
 };
 
-const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
+const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite = false }) => {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
@@ -236,6 +236,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
   const createParcel = async () => {
     const formData = new FormData();
     if (content) formData.append('content', content);
+    if (defaultFavorite) formData.append('favorite', 'true');
 
     const response = await axios.post('/api/create', formData, {
       withCredentials: true,
@@ -329,6 +330,9 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
       if (files.length > 0) {
         successMessage += `，已逐张上传 ${files.length} 个文件`;
       }
+      if (defaultFavorite) {
+        successMessage += '，已默认加入星标';
+      }
       if (keepOriginalImage && hasImageFiles) {
         successMessage += '，图片保持原图上传';
       }
@@ -375,7 +379,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess }) => {
       <Box sx={modalStyle}>
         <Box sx={{ p: 4, pb: 2 }}>
           <Typography variant="h6" component="h2">
-            创建新内容
+            {defaultFavorite ? '创建星标内容' : '创建新内容'}
           </Typography>
         </Box>
         

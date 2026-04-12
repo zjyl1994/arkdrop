@@ -8,7 +8,7 @@ import ImagePreviewModal from '../compoments/ImagePreviewModal';
 import DataListItem from '../compoments/DataListItem';
 import ImageGalleryView from '../compoments/ImageGalleryView';
 
-const HomePage = () => {
+const HomePage = ({ scope = 'all' }) => {
   const wsRef = useRef(null);
   const [listData, setListData] = useState([]);
   const [expireSeconds, setExpireSeconds] = useState(0);
@@ -19,10 +19,12 @@ const HomePage = () => {
     // Load saved view mode from localStorage, default to 'list'
     return localStorage.getItem('arkdrop-view-mode') || 'list';
   });
+  const scopeRef = useRef(scope);
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: '',
     message: '',
+    confirmText: '确定',
     onConfirm: null
   });
   const [imagePreview, setImagePreview] = useState({
@@ -55,6 +57,7 @@ const HomePage = () => {
       open: false,
       title: '',
       message: '',
+      confirmText: '确定',
       onConfirm: null
     });
   };
@@ -77,22 +80,22 @@ const HomePage = () => {
     });
   };
 
+  const fetchData = async (nextScope = scopeRef.current) => {
+    const query = nextScope === 'favorite' ? '?favorite=true' : '';
+
+    try {
+      const res = await axios.get(`/api/list${query}`, {
+        withCredentials: true,
+      });
+      setListData(Array.isArray(res.data.list) ? res.data.list : []);
+      setExpireSeconds(res.data.expire_seconds);
+    } catch (error) {
+      console.error('Failed to fetch data', error);
+    }
+  };
+
   // Fetch existing data on page load
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get('/api/list', {
-          withCredentials: true,
-        });
-        setListData(Array.isArray(res.data.list) ? res.data.list : []);
-        setExpireSeconds(res.data.expire_seconds);
-      } catch (error) {
-        console.error('Failed to fetch data', error);
-      }
-    };
-
-    fetchData();
-
     // WebSocket connection
     if (!wsRef.current) {
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -127,6 +130,11 @@ const HomePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    scopeRef.current = scope;
+    fetchData(scope);
+  }, [scope]);
+
   // 定期更新TTL进度条
   useEffect(() => {
     const interval = setInterval(() => {
@@ -144,11 +152,7 @@ const HomePage = () => {
         wsRef.current.send('list_change');
       } else {
         console.warn('WebSocket is not connected or closed, cannot send message.');
-        const res = await axios.get('/api/list', {
-          withCredentials: true,
-        });
-        setListData(Array.isArray(res.data.list) ? res.data.list : []);
-        setExpireSeconds(res.data.expire_seconds);
+        await fetchData();
       }
     }
 
@@ -192,16 +196,22 @@ const HomePage = () => {
 
   // 处理清空操作
   const handleClean = async () => {
+    const isFavoriteScope = scope === 'favorite';
+    const cleanQuery = isFavoriteScope ? '?favorite=true' : '';
+
     setConfirmDialog({
       open: true,
-      title: '确认清除',
-      message: '确定要清除所有数据吗？此操作不可撤销。',
+      title: isFavoriteScope ? '确认清除星标内容' : '确认清除普通内容',
+      message: isFavoriteScope
+        ? '确定要清除所有星标内容吗？此操作不可撤销。'
+        : '确定要清除所有普通内容吗？星标内容会被保留。',
+      confirmText: isFavoriteScope ? '清空星标' : '清空普通内容',
       onConfirm: async () => {
         try {
-          await axios.post('/api/clean', {}, {
+          await axios.post(`/api/clean${cleanQuery}`, {}, {
             withCredentials: true,
           });
-          showMessage('数据已清除');
+          showMessage(isFavoriteScope ? '星标内容已清除' : '普通内容已清除，星标内容已保留');
           listChangeAction();
         } catch (error) {
           showMessage('清除失败: ' + error.message);
@@ -223,6 +233,9 @@ const HomePage = () => {
     });
   };
 
+  const isFavoriteScope = scope === 'favorite';
+  const scopeLabel = isFavoriteScope ? '星标内容' : '全部内容';
+
   // 获取所有图片附件
   const getAllImages = () => {
     const allImages = [];
@@ -243,7 +256,7 @@ const HomePage = () => {
   // SpeedDial操作
   const actions = [
     { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
-    { icon: <ClearAll />, name: '清空所有', onClick: handleClean },
+    { icon: <ClearAll />, name: isFavoriteScope ? '清空星标' : '清空普通内容', onClick: handleClean },
     { 
       icon: viewMode === 'list' ? <GridView /> : <ViewList />, 
       name: viewMode === 'list' ? '图片预览' : '列表视图', 
@@ -260,7 +273,7 @@ const HomePage = () => {
         overflow: 'hidden'
       }}>
         {/* AppBar占位空间 */}
-        <Box sx={{ height: '64px', flexShrink: 0 }} />
+        <Box sx={{ height: { xs: '64px', sm: '72px' }, flexShrink: 0 }} />
 
         {/* 可滚动的内容区域 */}
         <Box
@@ -269,7 +282,8 @@ const HomePage = () => {
             flex: 1,
             overflow: 'auto',
             px: 3,
-            py: 2
+            py: 2,
+            pb: { xs: 10, sm: 2 }
           }}
         >
           {viewMode === 'list' ? (
@@ -288,25 +302,29 @@ const HomePage = () => {
                   mt: 4,
                   backgroundColor: 'transparent'
                 }}
-              >
-                <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h5" color="text.primary" gutterBottom>
-                  暂无数据
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
-                  您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Add />}
-                  onClick={handleOpenModal}
                 >
-                  添加内容
-                </Button>
-              </Paper>
-            ) : (
-              <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+                  <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h5" color="text.primary" gutterBottom>
+                    暂无{scopeLabel}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
+                    {isFavoriteScope
+                      ? '当前还没有星标内容。你可以先在全部内容里点亮星标，再回到这里集中查看。'
+                      : '您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。'}
+                  </Typography>
+                  {!isFavoriteScope && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Add />}
+                      onClick={handleOpenModal}
+                    >
+                      添加内容
+                    </Button>
+                  )}
+                </Paper>
+              ) : (
+                <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
                 {listData.map((item, index) => (
                   <Fragment key={item.id}>
                     {index > 0 && (
@@ -367,6 +385,7 @@ const HomePage = () => {
         open={modalOpen}
         handleClose={handleCloseModal}
         onSubmitSuccess={listChangeAction}
+        defaultFavorite={scope === 'favorite'}
       />
 
       {/* 确认对话框 */}
@@ -376,6 +395,7 @@ const HomePage = () => {
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText || '确定'}
         confirmColor={confirmDialog.confirmColor || 'primary'}
       />
 
@@ -390,7 +410,7 @@ const HomePage = () => {
       {/* 添加SpeedDial浮动操作按钮 */}
       <SpeedDial
         ariaLabel="操作菜单"
-        sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1300 }}
+        sx={{ position: 'fixed', bottom: { xs: 76, sm: 16 }, right: 16, zIndex: 1300 }}
         icon={<SpeedDialIcon />}
       >
         {actions.map((action) => (

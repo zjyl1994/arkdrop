@@ -62,34 +62,32 @@ func (ParcelService) Delete(id int) error {
 	})
 }
 
-func (ParcelService) Clean() error {
-	dataFolder := filepath.Join(vars.DataDir, "files")
-	err := filepath.WalkDir(dataFolder, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if path == dataFolder {
-			return nil
-		}
-		return os.RemoveAll(path)
-	})
+func (s ParcelService) Clean(favorite bool) error {
+	var parcels []Parcel
+	err := vars.DB.Select("id").Where("favorite = ?", favorite).Find(&parcels).Error
 	if err != nil {
 		return err
 	}
-	return vars.DB.Transaction(func(tx *gorm.DB) error {
-		tx = tx.Session(&gorm.Session{AllowGlobalUpdate: true})
-		err := tx.Delete(&Parcel{}).Error
-		if err != nil {
+
+	for _, parcel := range parcels {
+		if err := s.Delete(parcel.ID); err != nil {
 			return err
 		}
-		return tx.Delete(&Attachment{}).Error
-	})
+	}
+
+	return nil
 }
 
-func (ParcelService) List() ([]Parcel, error) {
+func (ParcelService) List(favorite *bool) ([]Parcel, error) {
 	var parcels []Parcel
-	err := vars.DB.Preload("Attachments").Order("CASE WHEN favorite = 1 THEN 0 ELSE 1 END").
-		Order("updated_at DESC").Find(&parcels).Error
+	query := vars.DB.Preload("Attachments")
+	if favorite == nil {
+		query = query.Order("CASE WHEN favorite = 1 THEN 0 ELSE 1 END")
+	} else {
+		query = query.Where("favorite = ?", *favorite)
+	}
+
+	err := query.Order("updated_at DESC").Find(&parcels).Error
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +95,10 @@ func (ParcelService) List() ([]Parcel, error) {
 }
 
 func (ParcelService) Favorite(id int) error {
-	return vars.DB.Model(&Parcel{}).Where("id = ?", id).Update("favorite", gorm.Expr("NOT favorite")).Error
+	return vars.DB.Model(&Parcel{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"favorite":   gorm.Expr("NOT favorite"),
+		"updated_at": time.Now().Unix(),
+	}).Error
 }
 
 func (s ParcelService) CleanExpired() error {

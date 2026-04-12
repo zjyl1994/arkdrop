@@ -31,7 +31,15 @@ function App() {
             path="/"
             element={
               <PrivateRoute>
-                <HomePage />
+                <HomePage scope="all" />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/favorites"
+            element={
+              <PrivateRoute>
+                <HomePage scope="favorite" />
               </PrivateRoute>
             }
           />
