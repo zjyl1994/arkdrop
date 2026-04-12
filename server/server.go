@@ -24,6 +24,7 @@ func Run(listen string) error {
 	apiGroup.Post("/cap/challenge", CreateChallenge)
 	apiGroup.Post("/cap/redeem", RedeemChallenge)
 	apiGroup.Post("/create", CreateParcel)
+	apiGroup.Post("/attachment", AddParcelAttachment)
 	apiGroup.Post("/delete", DeleteParcel)
 	apiGroup.Post("/clean", CleanParcel)
 	apiGroup.Get("/list", ListParcel)

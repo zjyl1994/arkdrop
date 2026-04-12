@@ -1,6 +1,9 @@
 package server
 
 import (
+	"errors"
+	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -9,44 +12,111 @@ import (
 	"github.com/zjyl1994/arkdrop/service"
 	"github.com/zjyl1994/arkdrop/utils"
 	"github.com/zjyl1994/arkdrop/vars"
+	"gorm.io/gorm"
 )
 
 var parcelService service.ParcelService
 
+func buildAttachment(file *multipart.FileHeader, now int64) service.Attachment {
+	return service.Attachment{
+		ContentType: file.Header.Get("Content-Type"),
+		FileSize:    file.Size,
+		FileName:    file.Filename,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+}
+
+func saveAttachments(c *fiber.Ctx, files []*multipart.FileHeader) ([]service.Attachment, []string, error) {
+	attachments := make([]service.Attachment, 0, len(files))
+	savedPaths := make([]string, 0, len(files))
+	now := time.Now().Unix()
+
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+
+		diskFileName := utils.RandString(10) + filepath.Ext(file.Filename)
+		diskPath := filepath.Join(vars.DataDir, "files", diskFileName)
+		if err := c.SaveFile(file, diskPath); err != nil {
+			for _, savedPath := range savedPaths {
+				_ = os.Remove(savedPath)
+			}
+			return nil, nil, err
+		}
+
+		attachment := buildAttachment(file, now)
+		attachment.FilePath = diskFileName
+		attachments = append(attachments, attachment)
+		savedPaths = append(savedPaths, diskPath)
+	}
+
+	return attachments, savedPaths, nil
+}
+
+func cleanupSavedFiles(savedPaths []string) {
+	for _, savedPath := range savedPaths {
+		_ = os.Remove(savedPath)
+	}
+}
+
 func CreateParcel(c *fiber.Ctx) (err error) {
+	var parcel service.Parcel
+	parcel.Content = c.FormValue("content")
+	now := time.Now().Unix()
+	parcel.CreatedAt = now
+	parcel.UpdatedAt = now
+
+	parcel, err = parcelService.Create(parcel)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"id": parcel.ID,
+	})
+}
+
+func AddParcelAttachment(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid parcel id",
+		})
+	}
+
 	form, err := c.MultipartForm()
 	if err != nil {
 		return err
 	}
-	files := form.File["files"]
-	var attachments []service.Attachment
-	now := time.Now().Unix()
-	for _, file := range files {
-		diskFileName := utils.RandString(10) + filepath.Ext(file.Filename)
-		diskPath := filepath.Join(vars.DataDir, "files", diskFileName)
-		if err = c.SaveFile(file, diskPath); err != nil {
-			return err
-		}
-		attachments = append(attachments, service.Attachment{
-			ContentType: file.Header.Get("Content-Type"),
-			FileSize:    file.Size,
-			FileName:    file.Filename,
-			FilePath:    diskFileName,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+
+	files := append(form.File["file"], form.File["files"]...)
+	if len(files) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "missing file",
 		})
 	}
-	var parcel service.Parcel
-	parcel.Content = c.FormValue("content")
-	parcel.CreatedAt = now
-	parcel.UpdatedAt = now
 
-	err = parcelService.Create(parcel, attachments)
+	attachments, savedPaths, err := saveAttachments(c, files)
 	if err != nil {
 		return err
 	}
 
-	return c.SendString("OK")
+	err = parcelService.AddAttachments(id, attachments)
+	if err != nil {
+		cleanupSavedFiles(savedPaths)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "parcel not found",
+			})
+		}
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"count": len(attachments),
+	})
 }
 
 func ListParcel(c *fiber.Ctx) error {

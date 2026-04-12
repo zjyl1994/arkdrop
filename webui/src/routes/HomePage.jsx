@@ -137,17 +137,19 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const listChangeAction = async (message, isError) => {
-    // Send message via WebSocket
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send('list_change');
-    } else {
-      console.warn('WebSocket is not connected or closed, cannot send message.');
-      const res = await axios.get('/api/list', {
-        withCredentials: true,
-      });
-      setListData(Array.isArray(res.data.list) ? res.data.list : []);
-      setExpireSeconds(res.data.expire_seconds);
+  const listChangeAction = async (message, isError, shouldRefresh = !isError) => {
+    if (shouldRefresh) {
+      // Send message via WebSocket
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send('list_change');
+      } else {
+        console.warn('WebSocket is not connected or closed, cannot send message.');
+        const res = await axios.get('/api/list', {
+          withCredentials: true,
+        });
+        setListData(Array.isArray(res.data.list) ? res.data.list : []);
+        setExpireSeconds(res.data.expire_seconds);
+      }
     }
 
     // 如果有消息，则显示

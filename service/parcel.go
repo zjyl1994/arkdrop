@@ -11,16 +11,31 @@ import (
 
 type ParcelService struct{}
 
-func (ParcelService) Create(parcel Parcel, attachments []Attachment) error {
+func (ParcelService) Create(parcel Parcel) (Parcel, error) {
+	err := vars.DB.Create(&parcel).Error
+	return parcel, err
+}
+
+func (ParcelService) AddAttachments(parcelID int, attachments []Attachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+
 	return vars.DB.Transaction(func(tx *gorm.DB) error {
-		err := tx.Create(&parcel).Error
-		if err != nil {
+		var parcel Parcel
+		if err := tx.First(&parcel, parcelID).Error; err != nil {
 			return err
 		}
+
 		for i := range attachments {
 			attachments[i].ParcelID = parcel.ID
 		}
-		return tx.CreateInBatches(&attachments, 10).Error
+
+		if err := tx.CreateInBatches(&attachments, 10).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(&parcel).Update("updated_at", time.Now().Unix()).Error
 	})
 }
 
