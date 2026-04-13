@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GridView, ViewList } from '@mui/icons-material';
+import Fab from '@mui/material/Fab';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
@@ -7,9 +7,13 @@ import ConfirmDialog from '../compoments/ConfirmDialog';
 import ImagePreviewModal from '../compoments/ImagePreviewModal';
 import DataListItem from '../compoments/DataListItem';
 import ImageGalleryView from '../compoments/ImageGalleryView';
+import { usePageActions } from '../contexts/PageActionsContext';
 
 const HomePage = ({ scope = 'all' }) => {
+  const { setPageActions, resetPageActions } = usePageActions();
   const wsRef = useRef(null);
+  const cleanActionRef = useRef(null);
+  const toggleViewActionRef = useRef(null);
   const [listData, setListData] = useState([]);
   const [expireSeconds, setExpireSeconds] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -234,10 +238,38 @@ const HomePage = ({ scope = 'all' }) => {
   };
 
   const isFavoriteScope = scope === 'favorite';
+  const cleanLabel = isFavoriteScope ? '清空收藏' : '清空列表';
   const emptyStateTitle = isFavoriteScope ? '暂无收藏' : '暂无内容';
   const emptyStateDescription = isFavoriteScope
     ? '当前还没有收藏内容。先在列表里点亮星标，再回来集中查看。'
     : '当前还没有内容。点击右下角 FAB 即可快速添加。';
+
+  cleanActionRef.current = handleClean;
+  toggleViewActionRef.current = handleToggleViewMode;
+
+  const handlePageClean = useCallback(() => {
+    cleanActionRef.current?.();
+  }, []);
+
+  const handlePageToggleView = useCallback(() => {
+    toggleViewActionRef.current?.();
+  }, []);
+
+  useEffect(() => {
+    setPageActions({
+      hasPageActions: true,
+      viewMode,
+      cleanLabel,
+      onToggleView: handlePageToggleView,
+      onClean: handlePageClean,
+    });
+  }, [cleanLabel, handlePageClean, handlePageToggleView, setPageActions, viewMode]);
+
+  useEffect(() => {
+    return () => {
+      resetPageActions();
+    };
+  }, [resetPageActions]);
 
   // 获取所有图片附件
   const getAllImages = () => {
@@ -255,17 +287,6 @@ const HomePage = ({ scope = 'all' }) => {
     });
     return allImages;
   };
-
-  // SpeedDial操作
-  const actions = [
-    { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
-    { icon: <ClearAll />, name: isFavoriteScope ? '清空收藏' : '清空列表', onClick: handleClean },
-    { 
-      icon: viewMode === 'list' ? <GridView /> : <ViewList />, 
-      name: viewMode === 'list' ? '图片预览' : '列表视图', 
-      onClick: handleToggleViewMode 
-    },
-  ];
 
   return (
     <>
@@ -421,26 +442,22 @@ const HomePage = ({ scope = 'all' }) => {
         imageAlt={imagePreview.alt}
       />
 
-      {/* 添加SpeedDial浮动操作按钮 */}
-      <SpeedDial
-        ariaLabel="操作菜单"
-        sx={{
-          position: 'fixed',
-          bottom: 'calc(16px + env(safe-area-inset-bottom))',
-          right: { xs: 16, sm: 24 },
-          zIndex: 1300,
-        }}
-        icon={<SpeedDialIcon />}
-      >
-        {actions.map((action) => (
-          <SpeedDialAction
-            key={action.name}
-            icon={action.icon}
-            tooltipTitle={action.name}
-            onClick={action.onClick}
-          />
-        ))}
-      </SpeedDial>
+      {/* 添加FAB浮动操作按钮 */}
+      <Tooltip title="添加内容">
+        <Fab
+          color="primary"
+          aria-label="添加内容"
+          onClick={handleOpenModal}
+          sx={{
+            position: 'fixed',
+            bottom: 'calc(16px + env(safe-area-inset-bottom))',
+            right: { xs: 16, sm: 24 },
+            zIndex: 1300,
+          }}
+        >
+          <Add />
+        </Fab>
+      </Tooltip>
     </>
   );
 };
