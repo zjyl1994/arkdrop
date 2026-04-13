@@ -1,29 +1,18 @@
 import Cookies from 'js-cookie';
-import {
-    BottomNavigation,
-    BottomNavigationAction,
-    Paper,
-    Tab,
-    Tabs,
-} from '@mui/material';
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function AppNavBar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const theme = useTheme();
-    const useBottomNav = useMediaQuery(theme.breakpoints.down('sm'));
     const isAuthenticated = !!Cookies.get('droptoken');
-    const showNavTabs = isAuthenticated && location.pathname !== '/login';
+    const showNavActions = isAuthenticated && location.pathname !== '/login';
     const currentTab = location.pathname === '/favorites' ? '/favorites' : '/';
     const navItems = [
-        { label: '全部内容', value: '/', icon: <HomeRounded /> },
-        { label: '星标内容', value: '/favorites', icon: <StarRounded /> },
+        { label: '内容主页', value: '/', icon: <HomeRounded /> },
+        { label: '收藏视图', value: '/favorites', icon: <StarRounded /> },
     ];
 
     const handleLogout = async () => {
@@ -48,137 +37,92 @@ export default function AppNavBar() {
                     borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
                 }}
             >
-                <Toolbar sx={{ minHeight: { xs: 64, sm: 72 }, px: { xs: 2, sm: 3 } }}>
+                <Toolbar sx={{ minHeight: { xs: 48, sm: 52 }, px: { xs: 1, sm: 1.5 } }}>
                     <Box
                         sx={{
                             flexGrow: 1,
                             minWidth: 0,
-                            mr: { sm: 3 },
+                            mr: 0.5,
                             overflow: 'hidden',
                         }}
                     >
-                        <Typography variant="h6" component="div" sx={{ fontWeight: 700, lineHeight: 1.2, flexShrink: 0 }}>
+                        <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                                fontWeight: 700,
+                                lineHeight: 1,
+                                fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                                flexShrink: 0,
+                            }}
+                        >
                             ArkDrop
                         </Typography>
                     </Box>
 
-                    {showNavTabs && !useBottomNav && (
-                        <Tabs
-                            value={currentTab}
-                            onChange={handleTabChange}
-                            textColor="inherit"
-                            indicatorColor="secondary"
+                    {showNavActions && (
+                        <Box
                             sx={{
-                                flexGrow: 1,
-                                color: '#fff',
-                                minHeight: 72,
-                                '& .MuiTabs-flexContainer': {
-                                    gap: 1,
-                                },
-                                '& .MuiTabs-indicator': {
-                                    height: 3,
-                                    borderRadius: 999,
-                                },
-                                '& .MuiTab-root': {
-                                    color: 'rgba(255, 255, 255, 0.54)',
-                                    minHeight: 72,
-                                    minWidth: 120,
-                                    fontWeight: 700,
-                                    opacity: 1,
-                                    transition: 'color 0.2s ease',
-                                },
-                                '& .Mui-selected': {
-                                    color: '#fff',
-                                },
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.125,
+                                mr: 0.125,
                             }}
                         >
                             {navItems.map((item) => (
-                                <Tab
-                                    key={item.value}
-                                    icon={item.icon}
-                                    iconPosition="start"
-                                    label={item.label}
-                                    value={item.value}
-                                />
+                                <Tooltip key={item.value} title={item.label}>
+                                    <IconButton
+                                        color="inherit"
+                                        aria-label={item.label}
+                                        size="small"
+                                        onClick={() => handleTabChange(null, item.value)}
+                                        sx={{
+                                            p: 0.5,
+                                            color: currentTab === item.value
+                                                ? '#fff'
+                                                : 'rgba(255, 255, 255, 0.68)',
+                                            transition: 'color 0.2s ease, transform 0.2s ease',
+                                            '& .MuiSvgIcon-root': {
+                                                fontSize: { xs: '1rem', sm: '1.05rem' },
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                                transform: 'translateY(-1px)',
+                                            },
+                                        }}
+                                    >
+                                        {item.icon}
+                                    </IconButton>
+                                </Tooltip>
                             ))}
-                        </Tabs>
+                        </Box>
                     )}
 
                     {isAuthenticated && (
-                        <Button
-                            color="inherit"
-                            onClick={handleLogout}
-                            startIcon={<LogoutRounded />}
-                            sx={{ borderRadius: 999, ml: { sm: 2 }, color: '#fff' }}
-                        >
-                            退出
-                        </Button>
+                        <Tooltip title="退出登录">
+                            <IconButton
+                                color="inherit"
+                                aria-label="退出登录"
+                                onClick={handleLogout}
+                                size="small"
+                                sx={{
+                                    p: 0.5,
+                                    color: 'rgba(255, 255, 255, 0.72)',
+                                    '& .MuiSvgIcon-root': {
+                                        fontSize: { xs: '1rem', sm: '1.05rem' },
+                                    },
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                        color: '#fff',
+                                    },
+                                }}
+                            >
+                                <LogoutRounded />
+                            </IconButton>
+                        </Tooltip>
                     )}
                 </Toolbar>
             </AppBar>
-
-            {showNavTabs && useBottomNav && (
-                <Paper
-                    elevation={8}
-                    sx={{
-                        position: 'fixed',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: theme.zIndex.appBar,
-                        overflow: 'hidden',
-                        color: '#fff',
-                        backgroundColor: 'rgba(63, 81, 181, 0.94)',
-                        backdropFilter: 'blur(18px)',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.12)',
-                    }}
-                >
-                    <BottomNavigation
-                        value={currentTab}
-                        onChange={handleTabChange}
-                        showLabels
-                        sx={{
-                            color: '#fff',
-                            height: 60,
-                            bgcolor: 'transparent',
-                            pb: 'env(safe-area-inset-bottom)',
-                            '& .MuiBottomNavigationAction-root': {
-                                color: 'rgba(255, 255, 255, 0.56)',
-                                minWidth: 0,
-                                maxWidth: 'none',
-                                minHeight: 60,
-                                transition: 'color 0.2s ease, transform 0.2s ease',
-                            },
-                            '& .MuiBottomNavigationAction-root .MuiSvgIcon-root': {
-                                color: 'inherit',
-                                opacity: 1,
-                                fontSize: '1.35rem',
-                            },
-                            '& .MuiBottomNavigationAction-label': {
-                                color: 'inherit',
-                                opacity: 1,
-                                fontSize: '0.72rem',
-                            },
-                            '& .Mui-selected': {
-                                color: '#fff',
-                                transform: 'translateY(-1px)',
-                            },
-                            '& .Mui-selected .MuiSvgIcon-root': {
-                                color: '#fff',
-                            },
-                        }}
-                    >
-                        {navItems.map((item) => (
-                            <BottomNavigationAction
-                                key={item.value}
-                                label={item.label}
-                                value={item.value}
-                                icon={item.icon}
-                            />
-                        ))}
-                    </BottomNavigation>
-                </Paper>
-            )}
         </Box>
     )
 }

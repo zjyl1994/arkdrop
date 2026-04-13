@@ -201,17 +201,17 @@ const HomePage = ({ scope = 'all' }) => {
 
     setConfirmDialog({
       open: true,
-      title: isFavoriteScope ? '确认清除星标内容' : '确认清除普通内容',
+      title: isFavoriteScope ? '确认清空收藏' : '确认清空列表',
       message: isFavoriteScope
-        ? '确定要清除所有星标内容吗？此操作不可撤销。'
-        : '确定要清除所有普通内容吗？星标内容会被保留。',
-      confirmText: isFavoriteScope ? '清空星标' : '清空普通内容',
+        ? '确定要清空所有已收藏内容吗？此操作不可撤销。'
+        : '确定要清空当前列表中的普通内容吗？已收藏内容会保留。',
+      confirmText: isFavoriteScope ? '清空收藏' : '清空列表',
       onConfirm: async () => {
         try {
           await axios.post(`/api/clean${cleanQuery}`, {}, {
             withCredentials: true,
           });
-          showMessage(isFavoriteScope ? '星标内容已清除' : '普通内容已清除，星标内容已保留');
+          showMessage(isFavoriteScope ? '收藏已清空' : '普通内容已清空，收藏已保留');
           listChangeAction();
         } catch (error) {
           showMessage('清除失败: ' + error.message);
@@ -234,7 +234,10 @@ const HomePage = ({ scope = 'all' }) => {
   };
 
   const isFavoriteScope = scope === 'favorite';
-  const scopeLabel = isFavoriteScope ? '星标内容' : '全部内容';
+  const emptyStateTitle = isFavoriteScope ? '暂无收藏' : '暂无内容';
+  const emptyStateDescription = isFavoriteScope
+    ? '当前还没有收藏内容。先在列表里点亮星标，再回来集中查看。'
+    : '当前还没有内容。点击右下角 FAB 即可快速添加。';
 
   // 获取所有图片附件
   const getAllImages = () => {
@@ -256,7 +259,7 @@ const HomePage = ({ scope = 'all' }) => {
   // SpeedDial操作
   const actions = [
     { icon: <Add />, name: '添加内容', onClick: handleOpenModal },
-    { icon: <ClearAll />, name: isFavoriteScope ? '清空星标' : '清空普通内容', onClick: handleClean },
+    { icon: <ClearAll />, name: isFavoriteScope ? '清空收藏' : '清空列表', onClick: handleClean },
     { 
       icon: viewMode === 'list' ? <GridView /> : <ViewList />, 
       name: viewMode === 'list' ? '图片预览' : '列表视图', 
@@ -273,7 +276,7 @@ const HomePage = ({ scope = 'all' }) => {
         overflow: 'hidden'
       }}>
         {/* AppBar占位空间 */}
-        <Box sx={{ height: { xs: '64px', sm: '72px' }, flexShrink: 0 }} />
+        <Box sx={{ height: { xs: '48px', sm: '52px' }, flexShrink: 0 }} />
 
         {/* 可滚动的内容区域 */}
         <Box
@@ -281,36 +284,36 @@ const HomePage = ({ scope = 'all' }) => {
           sx={{
             flex: 1,
             overflow: 'auto',
-            px: 3,
-            py: 2,
-            pb: { xs: 10, sm: 2 }
+            pt: { xs: 1.25, sm: 2 },
+            pb: { xs: 10.5, sm: 8.5 }
           }}
         >
-          {viewMode === 'list' ? (
-            // 列表视图
-            listData.length === 0 ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  py: 8,
-                  px: 2,
-                  mt: 4,
-                  backgroundColor: 'transparent'
-                }}
+          <Container maxWidth="lg" sx={{ px: { xs: 1.25, sm: 2 } }}>
+            {viewMode === 'list' ? (
+              listData.length === 0 ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    py: { xs: 6, sm: 8 },
+                    px: { xs: 2, sm: 3 },
+                    mt: 1,
+                    borderRadius: 3,
+                    border: '1px dashed',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.paper'
+                  }}
                 >
                   <Inbox sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h5" color="text.primary" gutterBottom>
-                    暂无{scopeLabel}
+                    {emptyStateTitle}
                   </Typography>
                   <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mb: 4 }}>
-                    {isFavoriteScope
-                      ? '当前还没有星标内容。你可以先在全部内容里点亮星标，再回到这里集中查看。'
-                      : '您还没有添加任何内容。点击右下角的加号按钮开始添加新内容。'}
+                    {emptyStateDescription}
                   </Typography>
                   {!isFavoriteScope && (
                     <Button
@@ -318,47 +321,58 @@ const HomePage = ({ scope = 'all' }) => {
                       color="primary"
                       startIcon={<Add />}
                       onClick={handleOpenModal}
+                      sx={{ borderRadius: 999, px: 2.5 }}
                     >
                       添加内容
                     </Button>
                   )}
                 </Paper>
               ) : (
-                <List sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
-                {listData.map((item, index) => (
-                  <Fragment key={item.id}>
-                    {index > 0 && (
-                      <>
-                        <Divider
-                          variant="fullWidth"
-                          component="li"
-                          sx={{ display: { xs: 'block', sm: 'none' } }}
-                        />
-                        <Divider
-                          variant="inset"
-                          component="li"
-                          sx={{ display: { xs: 'none', sm: 'block' } }}
-                        />
-                      </>
-                    )}
-                    <DataListItem
-                      item={item}
-                      expireSeconds={expireSeconds}
-                      onFavorite={handleFavorite}
-                      onDelete={handleDelete}
-                      onImagePreview={handleImagePreview}
-                    />
-                  </Fragment>
-                ))}
-              </List>
-            )
-          ) : (
-            // 图片网格视图
-            <ImageGalleryView
-              images={getAllImages()}
-              onImagePreview={handleImagePreview}
-            />
-          )}
+                <List
+                  sx={{
+                    width: '100%',
+                    p: 0,
+                    bgcolor: 'background.paper',
+                    borderRadius: { xs: 1.5, sm: 2.5 },
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {listData.map((item, index) => (
+                    <Fragment key={item.id}>
+                      {index > 0 && (
+                        <>
+                          <Divider
+                            variant="fullWidth"
+                            component="li"
+                            sx={{ display: { xs: 'block', sm: 'none' } }}
+                          />
+                          <Divider
+                            variant="inset"
+                            component="li"
+                            sx={{ display: { xs: 'none', sm: 'block' } }}
+                          />
+                        </>
+                      )}
+                      <DataListItem
+                        item={item}
+                        expireSeconds={expireSeconds}
+                        onFavorite={handleFavorite}
+                        onDelete={handleDelete}
+                        onImagePreview={handleImagePreview}
+                      />
+                    </Fragment>
+                  ))}
+                </List>
+              )
+            ) : (
+              <ImageGalleryView
+                images={getAllImages()}
+                onImagePreview={handleImagePreview}
+              />
+            )}
+          </Container>
         </Box>
       </Box>
 
@@ -410,7 +424,12 @@ const HomePage = ({ scope = 'all' }) => {
       {/* 添加SpeedDial浮动操作按钮 */}
       <SpeedDial
         ariaLabel="操作菜单"
-        sx={{ position: 'fixed', bottom: { xs: 76, sm: 16 }, right: 16, zIndex: 1300 }}
+        sx={{
+          position: 'fixed',
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
+          right: { xs: 16, sm: 24 },
+          zIndex: 1300,
+        }}
         icon={<SpeedDialIcon />}
       >
         {actions.map((action) => (

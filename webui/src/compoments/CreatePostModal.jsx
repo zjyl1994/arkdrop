@@ -379,7 +379,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
       <Box sx={modalStyle}>
         <Box sx={{ p: 4, pb: 2 }}>
           <Typography variant="h6" component="h2">
-            {defaultFavorite ? '创建星标内容' : '创建新内容'}
+            {defaultFavorite ? '创建收藏内容' : '创建新内容'}
           </Typography>
         </Box>
         

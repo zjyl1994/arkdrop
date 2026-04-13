@@ -81,13 +81,11 @@ func (s ParcelService) Clean(favorite bool) error {
 func (ParcelService) List(favorite *bool) ([]Parcel, error) {
 	var parcels []Parcel
 	query := vars.DB.Preload("Attachments")
-	if favorite == nil {
-		query = query.Order("CASE WHEN favorite = 1 THEN 0 ELSE 1 END")
-	} else {
+	if favorite != nil {
 		query = query.Where("favorite = ?", *favorite)
 	}
 
-	err := query.Order("updated_at DESC").Find(&parcels).Error
+	err := query.Order("created_at DESC").Find(&parcels).Error
 	if err != nil {
 		return nil, err
 	}

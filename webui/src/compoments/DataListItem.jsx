@@ -1,6 +1,11 @@
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
 
 // Format file size with appropriate unit
 const formatFileSize = (bytes) => {
@@ -52,8 +57,11 @@ const DataListItem = ({
   const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
   const hasContent = item.content && item.content.trim().length > 0;
   const hasAttachments = item.attachments.length > 0;
-  const dateString = dayjs.unix(item.created_at).format('YYYY-MM-DD HH:mm:ss');
+  const createdAt = dayjs.unix(item.created_at);
+  const dateString = createdAt.format('YYYY-MM-DD HH:mm:ss');
+  const relativeDateString = createdAt.fromNow();
   const ttlInfo = calculateTTLProgress(item);
+  const timeTooltip = ttlInfo ? `${dateString} · 剩余 ${ttlInfo.timeLeft}` : dateString;
 
   // Calculate responsive image preview columns
   const theme = useTheme();
@@ -145,7 +153,10 @@ const DataListItem = ({
   return (
     <ListItem
       alignItems="flex-start"
-      sx={{ pb: 0 }}
+      sx={{
+        px: { xs: 1.25, sm: 1.75 },
+        py: { xs: 0.75, sm: 1 },
+      }}
     >
       <Snackbar
         open={snackbarOpen}
@@ -154,39 +165,52 @@ const DataListItem = ({
         message={snackbarMessage || "内容已复制到剪贴板"}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-      <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' } }}>
-        <Avatar>
+      <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' }, minWidth: 44 }}>
+        <Avatar sx={{ width: 32, height: 32 }}>
           {hasContent ? <TextSnippet /> : hasAttachments ? (imageList.length > 0 ? <Image /> : <Attachment />) : <Inbox />}
         </Avatar>
       </ListItemAvatar>
 
       <ListItemText
         sx={{
-          pr: 2,
+          my: 0,
+          pr: { xs: 0.5, sm: 1.25 },
           ml: { xs: 0, sm: 0 }
         }}
         primary={
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Tooltip title={ttlInfo ? `剩余时间: ${ttlInfo.timeLeft} (${Math.round(ttlInfo.progress)}%)` : '永不过期'} arrow>
-                <Chip
-                  label={dateString}
-                  size="small"
-                  variant="outlined"
-                  sx={{ mr: 1 }}
-                />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, mb: 0.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+              <Tooltip title={timeTooltip} arrow>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {relativeDateString}
+                </Typography>
               </Tooltip>
             </Box>
-            <Box>
-              <IconButton size="small" aria-label="favorite" onClick={() => onFavorite(item.id)} title={item.favorite ? "取消收藏" : "收藏"}>
+            <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 0.125 }}>
+              <IconButton
+                size="small"
+                aria-label="favorite"
+                onClick={() => onFavorite(item.id)}
+                title={item.favorite ? "取消收藏" : "收藏"}
+                sx={{ p: 0.5 }}
+              >
                 {item.favorite ? <Star color="warning" fontSize="small" /> : <StarBorder fontSize="small" />}
               </IconButton>
               {(hasContent || imageList.length > 0) && (
-                 <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容">
-                   <ContentCopy fontSize="small" />
-                 </IconButton>
-               )}
-              <IconButton size="small" aria-label="delete" onClick={() => onDelete(item.id)} title="删除">
+                 <IconButton size="small" aria-label="copy" onClick={handleCopyContent} title="复制内容" sx={{ p: 0.5 }}>
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                )}
+              <IconButton size="small" aria-label="delete" onClick={() => onDelete(item.id)} title="删除" sx={{ p: 0.5 }}>
                 <Delete fontSize="small" />
               </IconButton>
             </Box>
@@ -195,22 +219,27 @@ const DataListItem = ({
         secondary={
           <Typography component="div" variant="body2">
             {hasContent && (
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, my: 1, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}
+              <Box
+                sx={{
+                  px: { xs: 1.25, sm: 1.5 },
+                  py: 0.75,
+                  my: 0.5,
+                  borderRadius: 1.5,
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                }}
               >
-                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
                   {item.content}
                 </Typography>
-              </Paper>
+              </Box>
             )}
 
             {imageList.length > 0 && (
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 1 }}>
                 <ImageList 
                   variant="masonry" 
                   cols={imagePreviewCol} 
-                  gap={8}
+                  gap={6}
                   sx={{
                     // Prevent layout shift during loading
                     '& .MuiImageListItem-root': {
@@ -244,54 +273,63 @@ const DataListItem = ({
             )}
 
             {item.attachments.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.25, fontSize: '0.78rem' }}>
                   附件 ({item.attachments.length})
                 </Typography>
-                <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1, p: 0 }}>
+                <List component="div" dense sx={{ bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1.25, p: 0 }}>
                   {item.attachments.map((file) => (
                     <ListItem
                       key={file.id}
                       component="div"
-                      sx={{ py: 0.5 }}
-                      secondaryAction={
-                        <a
-                          href={`/files/${file.file_path}`}
-                          download={file.file_name}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <IconButton size="small" aria-label="download">
-                            <Download fontSize="small" />
-                          </IconButton>
-                        </a>
-                      }
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        px: 1,
+                        py: 0.25,
+                        minHeight: 32,
+                      }}
                     >
-                      <ListItemIcon sx={{ minWidth: 32 }}>
+                      <ListItemIcon sx={{ minWidth: 22 }}>
                         {file.content_type.startsWith('image/') ?
                           <Image fontSize="small" /> :
                           <Attachment fontSize="small" />}
                       </ListItemIcon>
-                      <ListItemText
-                        primary={file.file_name}
-                        secondary={formatFileSize(file.file_size)}
-                        primaryTypographyProps={{
-                          noWrap: true,
-                          variant: 'body2',
-                          sx: { fontSize: '0.875rem' }
-                        }}
-                        secondaryTypographyProps={{
-                          variant: 'caption',
-                          sx: { fontSize: '0.75rem' }
-                        }}
-                        sx={{
-                          pr: 1,
-                          '& .MuiListItemText-primary': {
-                            maxWidth: { xs: '150px', sm: '200px', md: '300px' }
-                          }
-                        }}
-                      />
+                      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{
+                            minWidth: 0,
+                            flex: 1,
+                            fontSize: '0.8125rem',
+                          }}
+                        >
+                          {file.file_name}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            flexShrink: 0,
+                            fontSize: '0.6875rem',
+                          }}
+                        >
+                          {formatFileSize(file.file_size)}
+                        </Typography>
+                      </Box>
+                      <a
+                        href={`/files/${file.file_path}`}
+                        download={file.file_name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: 'flex', textDecoration: 'none' }}
+                      >
+                        <IconButton size="small" aria-label="download" sx={{ p: 0.5 }}>
+                          <Download fontSize="small" />
+                        </IconButton>
+                      </a>
                     </ListItem>
                   ))}
                 </List>
