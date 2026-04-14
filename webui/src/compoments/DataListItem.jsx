@@ -1,8 +1,6 @@
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -21,15 +19,17 @@ const formatFileSize = (bytes) => {
 const DataListItem = ({
   item,
   expireSeconds,
+  imagePreviewCol,
   onFavorite,
+  onCopyMessage,
   onDelete,
   onImagePreview
 }) => {
   // Calculate TTL progress
-  const calculateTTLProgress = (item) => {
+  const calculateTTLProgress = (item, currentTime) => {
     if (item.favorite || !expireSeconds || expireSeconds === 0) return null;
 
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(currentTime / 1000);
     const expireTime = item.updated_at + expireSeconds;
     const remainingTime = expireTime - now;
 
@@ -57,21 +57,26 @@ const DataListItem = ({
   const imageList = item.attachments.filter(x => x.content_type.startsWith('image/'));
   const hasContent = item.content && item.content.trim().length > 0;
   const hasAttachments = item.attachments.length > 0;
+  const shouldTrackTTL = !item.favorite && !!expireSeconds;
   const createdAt = dayjs.unix(item.created_at);
   const dateString = createdAt.format('YYYY-MM-DD HH:mm:ss');
   const relativeDateString = createdAt.fromNow();
-  const ttlInfo = calculateTTLProgress(item);
+  const [ttlCurrentTime, setTtlCurrentTime] = useState(() => Date.now());
+  const ttlInfo = calculateTTLProgress(item, ttlCurrentTime);
   const timeTooltip = ttlInfo ? `${dateString} · 剩余 ${ttlInfo.timeLeft}` : dateString;
 
-  // Calculate responsive image preview columns
-  const theme = useTheme();
-  const isXs = useMediaQuery(theme.breakpoints.only('xs'));
-  const isSm = useMediaQuery(theme.breakpoints.only('sm'));
-  const isMd = useMediaQuery(theme.breakpoints.only('md'));
-  const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
+  useEffect(() => {
+    if (!shouldTrackTTL) {
+      return undefined;
+    }
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+    setTtlCurrentTime(Date.now());
+    const interval = setInterval(() => {
+      setTtlCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [expireSeconds, item.favorite, item.updated_at, shouldTrackTTL]);
 
   const handleCopyContent = async () => {
     try {
@@ -120,13 +125,12 @@ const DataListItem = ({
         await navigator.clipboard.write([new ClipboardItem(clipboardData)]);
         
         if (hasContent && imageList.length > 0) {
-          setSnackbarMessage('文本和图片已复制到剪贴板');
+          onCopyMessage?.('文本和图片已复制到剪贴板');
         } else if (hasContent) {
-          setSnackbarMessage('文本内容已复制到剪贴板');
+          onCopyMessage?.('文本内容已复制到剪贴板');
         } else {
-          setSnackbarMessage('图片已复制到剪贴板');
+          onCopyMessage?.('图片已复制到剪贴板');
         }
-        setSnackbarOpen(true);
       }
     } catch (err) {
       console.error('Failed to copy content: ', err);
@@ -134,20 +138,12 @@ const DataListItem = ({
       if (hasContent) {
         try {
           await navigator.clipboard.writeText(item.content);
-          setSnackbarMessage('文本内容已复制到剪贴板 (仅文本)');
-          setSnackbarOpen(true);
+          onCopyMessage?.('文本内容已复制到剪贴板 (仅文本)');
         } catch (fallbackErr) {
            console.error('Fallback copy failed:', fallbackErr);
         }
       }
     }
-  };
-
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
   };
 
   return (
@@ -158,13 +154,6 @@ const DataListItem = ({
         py: { xs: 0.75, sm: 1 },
       }}
     >
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={2000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage || "内容已复制到剪贴板"}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
       <ListItemAvatar sx={{ display: { xs: 'none', sm: 'flex' }, minWidth: 44 }}>
         <Avatar sx={{ width: 32, height: 32 }}>
           {hasContent ? <TextSnippet /> : hasAttachments ? (imageList.length > 0 ? <Image /> : <Attachment />) : <Inbox />}

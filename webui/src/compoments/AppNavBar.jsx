@@ -20,22 +20,81 @@ export default function AppNavBar() {
     const currentTab = location.pathname === '/favorites' ? '/favorites' : '/';
     const [drawerOpen, setDrawerOpen] = useState(false);
     const navItems = [
-        { label: '内容主页', value: '/', icon: <HomeRounded /> },
-        { label: '收藏视图', value: '/favorites', icon: <StarRounded /> },
+        { label: '首页', value: '/', icon: <HomeRounded /> },
+        { label: '我的收藏', value: '/favorites', icon: <StarRounded /> },
     ];
     const pageActionItems = [
         {
-            label: pageActions.viewMode === 'list' ? '切换为图库' : '切换为列表',
+            label: pageActions.viewMode === 'list' ? '切换到图片浏览' : '切换到列表浏览',
             icon: pageActions.viewMode === 'list' ? <GridView /> : <ViewList />,
             onClick: pageActions.onToggleView,
         },
         {
-            label: pageActions.cleanLabel || '清空列表',
+            label: pageActions.cleanLabel || '清空当前内容',
             icon: <ClearAllRounded />,
             onClick: pageActions.onClean,
         },
     ];
     const drawerWidth = 'min(82vw, 248px)';
+    const toolbarButtonBaseSx = {
+        p: { xs: 0.75, sm: 0.6 },
+    };
+    const toolbarButtonIconSx = {
+        fontSize: { xs: '1.15rem', sm: '1.08rem' },
+    };
+    const drawerToggleButtonSx = {
+        ...toolbarButtonBaseSx,
+        mr: 0.5,
+        color: 'rgba(255, 255, 255, 0.82)',
+        '& .MuiSvgIcon-root': {
+            fontSize: { xs: '1.2rem', sm: '1.1rem' },
+        },
+        '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            color: '#fff',
+        },
+    };
+    const pageToolButtonSx = {
+        ...toolbarButtonBaseSx,
+        color: 'rgba(255, 255, 255, 0.56)',
+        '& .MuiSvgIcon-root': toolbarButtonIconSx,
+        '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+            color: 'rgba(255, 255, 255, 0.88)',
+        },
+        '&.Mui-disabled': {
+            color: 'rgba(255, 255, 255, 0.32)',
+        },
+    };
+    const drawerNavItemSx = {
+        minHeight: 44,
+        px: 1.5,
+        borderRadius: 2,
+        mb: 0.5,
+        transition: 'background-color 0.18s ease, color 0.18s ease',
+        '&.Mui-selected': {
+            backgroundColor: 'rgba(63, 81, 181, 0.16)',
+            color: 'primary.main',
+            boxShadow: 'inset 0 0 0 1px rgba(63, 81, 181, 0.1)',
+        },
+        '&.Mui-selected:hover': {
+            backgroundColor: 'rgba(63, 81, 181, 0.2)',
+        },
+        '&:hover': {
+            backgroundColor: 'rgba(63, 81, 181, 0.06)',
+        },
+    };
+    const drawerSecondaryItemSx = {
+        minHeight: 44,
+        borderRadius: 2,
+        color: 'text.secondary',
+    };
+    const drawerItemIconSx = {
+        minWidth: 36,
+    };
+    const drawerItemTextProps = {
+        fontSize: '0.95rem',
+    };
 
     const handleDrawerOpen = () => {
         setDrawerOpen(true);
@@ -56,6 +115,50 @@ export default function AppNavBar() {
         navigate('/login');
     }
 
+    const renderToolbarAction = (item) => (
+        <Tooltip key={item.key ?? item.label} title={item.label}>
+            <IconButton
+                color="inherit"
+                aria-label={item.label}
+                onClick={item.onClick}
+                size="small"
+                disabled={!item.onClick}
+                sx={pageToolButtonSx}
+            >
+                {item.icon}
+            </IconButton>
+        </Tooltip>
+    );
+
+    const renderDrawerItem = ({
+        key,
+        label,
+        icon,
+        onClick,
+        selected = false,
+        sx = drawerSecondaryItemSx,
+        iconColor = 'text.secondary',
+        fontWeight = 500,
+    }) => (
+        <ListItemButton
+            key={key ?? label}
+            selected={selected}
+            onClick={onClick}
+            sx={sx}
+        >
+            <ListItemIcon sx={{ ...drawerItemIconSx, color: iconColor }}>
+                {icon}
+            </ListItemIcon>
+            <ListItemText
+                primary={label}
+                primaryTypographyProps={{
+                    ...drawerItemTextProps,
+                    fontWeight,
+                }}
+            />
+        </ListItemButton>
+    );
+
     return (
         <Box sx={{ flexGrow: 1 }}>
             <AppBar
@@ -71,24 +174,13 @@ export default function AppNavBar() {
             >
                 <Toolbar sx={{ minHeight: { xs: 54, sm: 56 }, px: { xs: 1, sm: 1.5 } }}>
                     {showAppShell && (
-                        <Tooltip title="打开导航">
+                        <Tooltip title="菜单">
                             <IconButton
                                 color="inherit"
-                                aria-label="打开导航抽屉"
+                                aria-label="打开菜单"
                                 onClick={handleDrawerOpen}
                                 size="small"
-                                sx={{
-                                    mr: 0.5,
-                                    p: { xs: 0.75, sm: 0.6 },
-                                    color: 'rgba(255, 255, 255, 0.82)',
-                                    '& .MuiSvgIcon-root': {
-                                        fontSize: { xs: '1.2rem', sm: '1.1rem' },
-                                    },
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                                        color: '#fff',
-                                    },
-                                }}
+                                sx={drawerToggleButtonSx}
                             >
                                 <MenuRounded />
                             </IconButton>
@@ -125,33 +217,7 @@ export default function AppNavBar() {
                                 gap: 0.125,
                             }}
                         >
-                            {pageActionItems.map((item) => (
-                                <Tooltip key={item.label} title={item.label}>
-                                    <IconButton
-                                        color="inherit"
-                                        aria-label={item.label}
-                                        onClick={item.onClick}
-                                        size="small"
-                                        disabled={!item.onClick}
-                                        sx={{
-                                            p: { xs: 0.75, sm: 0.6 },
-                                            color: 'rgba(255, 255, 255, 0.56)',
-                                            '& .MuiSvgIcon-root': {
-                                                fontSize: { xs: '1.15rem', sm: '1.08rem' },
-                                            },
-                                            '&:hover': {
-                                                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                                                color: 'rgba(255, 255, 255, 0.88)',
-                                            },
-                                            '&.Mui-disabled': {
-                                                color: 'rgba(255, 255, 255, 0.32)',
-                                            },
-                                        }}
-                                    >
-                                        {item.icon}
-                                    </IconButton>
-                                </Tooltip>
-                            ))}
+                            {pageActionItems.map(renderToolbarAction)}
                         </Box>
                     )}
                 </Toolbar>
@@ -193,42 +259,16 @@ export default function AppNavBar() {
                         <List sx={{ px: 1, py: 1 }}>
                             {navItems.map((item) => {
                                 const selected = currentTab === item.value;
-                                return (
-                                    <ListItemButton
-                                        key={item.value}
-                                        selected={selected}
-                                        onClick={() => handleNavigate(item.value)}
-                                        sx={{
-                                            minHeight: 44,
-                                            px: 1.5,
-                                            borderRadius: 2,
-                                            mb: 0.5,
-                                            transition: 'background-color 0.18s ease, color 0.18s ease',
-                                            '&.Mui-selected': {
-                                                backgroundColor: 'rgba(63, 81, 181, 0.16)',
-                                                color: 'primary.main',
-                                                boxShadow: 'inset 0 0 0 1px rgba(63, 81, 181, 0.1)',
-                                            },
-                                            '&.Mui-selected:hover': {
-                                                backgroundColor: 'rgba(63, 81, 181, 0.2)',
-                                            },
-                                            '&:hover': {
-                                                backgroundColor: 'rgba(63, 81, 181, 0.06)',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemIcon sx={{ minWidth: 36, color: selected ? 'primary.main' : 'text.secondary' }}>
-                                            {item.icon}
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={item.label}
-                                            primaryTypographyProps={{
-                                                fontSize: '0.95rem',
-                                                fontWeight: selected ? 700 : 500,
-                                            }}
-                                        />
-                                    </ListItemButton>
-                                );
+                                return renderDrawerItem({
+                                    key: item.value,
+                                    label: item.label,
+                                    icon: item.icon,
+                                    onClick: () => handleNavigate(item.value),
+                                    selected,
+                                    sx: drawerNavItemSx,
+                                    iconColor: selected ? 'primary.main' : 'text.secondary',
+                                    fontWeight: selected ? 700 : 500,
+                                });
                             })}
                         </List>
 
@@ -237,25 +277,13 @@ export default function AppNavBar() {
                         <Divider />
 
                         <List sx={{ px: 1, py: 1, pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
-                            <ListItemButton
-                                onClick={handleLogout}
-                                sx={{
-                                    minHeight: 44,
-                                    borderRadius: 2,
-                                    color: 'text.secondary',
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
-                                    <LogoutRounded />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="退出登录"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.95rem',
-                                        fontWeight: 500,
-                                    }}
-                                />
-                            </ListItemButton>
+                            {renderDrawerItem({
+                                key: 'logout',
+                                label: '退出登录',
+                                icon: <LogoutRounded />,
+                                onClick: handleLogout,
+                                iconColor: 'inherit',
+                            })}
                         </List>
                     </Box>
                 </Drawer>

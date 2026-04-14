@@ -379,7 +379,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
       <Box sx={modalStyle}>
         <Box sx={{ p: 4, pb: 2 }}>
           <Typography variant="h6" component="h2">
-            {defaultFavorite ? '创建收藏内容' : '创建新内容'}
+            {defaultFavorite ? '添加到收藏' : '添加内容'}
           </Typography>
         </Box>
         
@@ -391,12 +391,12 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
               minRows={5}
               maxRows={15}
               style={{ width: '100%', resize: 'none' }}
-              placeholder="输入内容..."
+              placeholder="写点内容，或直接粘贴文字、图片"
               disabled={uploading}
             />
             {!isXs &&
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                💡 提示：可以直接使用 Ctrl+V 粘贴剪贴板中的图片
+                小提示：可以直接按 Ctrl+V 粘贴图片
               </Typography>
             }
           </Box>

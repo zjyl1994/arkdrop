@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Fab from '@mui/material/Fab';
+import { useTheme } from '@mui/material/styles';
 
 // 导入CreatePostModal组件
 import CreatePostModal from '../compoments/CreatePostModal';
@@ -9,11 +10,40 @@ import DataListItem from '../compoments/DataListItem';
 import ImageGalleryView from '../compoments/ImageGalleryView';
 import { usePageActions } from '../contexts/PageActionsContext';
 
+const authRequestConfig = { withCredentials: true };
+
+const defaultConfirmDialog = {
+  open: false,
+  title: '',
+  message: '',
+  confirmText: '确定',
+  confirmColor: 'primary',
+  onConfirm: null,
+};
+
+const defaultImagePreview = {
+  open: false,
+  src: '',
+  alt: '',
+};
+
+const createConfirmDialogState = (overrides = {}) => ({
+  ...defaultConfirmDialog,
+  ...overrides,
+});
+
+const createImagePreviewState = (overrides = {}) => ({
+  ...defaultImagePreview,
+  ...overrides,
+});
+
 const HomePage = ({ scope = 'all' }) => {
   const { setPageActions, resetPageActions } = usePageActions();
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+  const isSm = useMediaQuery(theme.breakpoints.only('sm'));
+  const isMd = useMediaQuery(theme.breakpoints.only('md'));
   const wsRef = useRef(null);
-  const cleanActionRef = useRef(null);
-  const toggleViewActionRef = useRef(null);
   const [listData, setListData] = useState([]);
   const [expireSeconds, setExpireSeconds] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -24,132 +54,98 @@ const HomePage = ({ scope = 'all' }) => {
     return localStorage.getItem('arkdrop-view-mode') || 'list';
   });
   const scopeRef = useRef(scope);
-  const [confirmDialog, setConfirmDialog] = useState({
-    open: false,
-    title: '',
-    message: '',
-    confirmText: '确定',
-    onConfirm: null
-  });
-  const [imagePreview, setImagePreview] = useState({
-    open: false,
-    src: '',
-    alt: ''
-  });
+  const [confirmDialog, setConfirmDialog] = useState(defaultConfirmDialog);
+  const [imagePreview, setImagePreview] = useState(defaultImagePreview);
 
-  // 添加Modal控制函数
-  const handleOpenModal = () => setModalOpen(true);
-  const handleCloseModal = () => setModalOpen(false);
+  const getWithAuth = useCallback((url) => axios.get(url, authRequestConfig), []);
+  const postWithAuth = useCallback((url, payload = {}) => axios.post(url, payload, authRequestConfig), []);
 
-  // Snackbar控制函数
-  const handleSnackbarClose = (event, reason) => {
+  const openModal = useCallback(() => setModalOpen(true), []);
+  const closeModal = useCallback(() => setModalOpen(false), []);
+
+  const closeSnackbar = useCallback((event, reason) => {
     if (reason === 'clickaway') {
       return;
     }
     setSnackbarOpen(false);
-  };
+  }, []);
 
-  // 显示消息的函数，替代toast
-  const showMessage = (message) => {
+  const showMessage = useCallback((message) => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
-  };
+  }, []);
 
-  // 关闭确认对话框
-  const handleCloseConfirmDialog = () => {
-    setConfirmDialog({
-      open: false,
-      title: '',
-      message: '',
-      confirmText: '确定',
-      onConfirm: null
-    });
-  };
+  const closeConfirmDialog = useCallback(() => {
+    setConfirmDialog(defaultConfirmDialog);
+  }, []);
 
-  // 处理图片预览
-  const handleImagePreview = (src, alt) => {
-    setImagePreview({
-      open: true,
-      src,
-      alt
-    });
-  };
+  const openConfirmDialog = useCallback((overrides) => {
+    setConfirmDialog(createConfirmDialogState({ open: true, ...overrides }));
+  }, []);
 
-  // 关闭图片预览
-  const handleCloseImagePreview = () => {
-    setImagePreview({
-      open: false,
-      src: '',
-      alt: ''
-    });
-  };
+  const openImagePreview = useCallback((src, alt) => {
+    setImagePreview(createImagePreviewState({ open: true, src, alt }));
+  }, []);
 
-  const fetchData = async (nextScope = scopeRef.current) => {
+  const closeImagePreview = useCallback(() => {
+    setImagePreview(defaultImagePreview);
+  }, []);
+
+  const fetchData = useCallback(async (nextScope = scopeRef.current) => {
     const query = nextScope === 'favorite' ? '?favorite=true' : '';
 
     try {
-      const res = await axios.get(`/api/list${query}`, {
-        withCredentials: true,
-      });
+      const res = await getWithAuth(`/api/list${query}`);
       setListData(Array.isArray(res.data.list) ? res.data.list : []);
       setExpireSeconds(res.data.expire_seconds);
     } catch (error) {
       console.error('Failed to fetch data', error);
     }
-  };
+  }, [getWithAuth]);
 
   // Fetch existing data on page load
   useEffect(() => {
-    // WebSocket connection
-    if (!wsRef.current) {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsRef.current = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws?echo=1`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws?echo=1`);
+    wsRef.current = ws;
 
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connection established');
-      };
+    ws.onopen = () => {
+      console.log('WebSocket connection established');
+    };
 
-      wsRef.current.onmessage = (event) => {
-        console.log('Received WebSocket message:', event.data);
-        if (event.data === 'list_change') {
-          fetchData(); // Refresh list
-        }
-      };
+    ws.onmessage = (event) => {
+      console.log('Received WebSocket message:', event.data);
+      if (event.data === 'list_change') {
+        fetchData();
+      }
+    };
 
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
 
-      wsRef.current.onclose = () => {
-        console.log('WebSocket connection closed');
-      };
-    }
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
 
-    // Close WebSocket connection on component unmount
     return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      ws.close();
+      if (wsRef.current === ws) {
         wsRef.current = null;
       }
     };
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     scopeRef.current = scope;
     fetchData(scope);
-  }, [scope]);
+  }, [fetchData, scope]);
 
-  // 定期更新TTL进度条
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // 强制重新渲染以更新TTL进度
-      setListData(prevData => [...prevData]);
-    }, 1000); // 每秒更新一次
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const listChangeAction = async (message, isError, shouldRefresh = !isError) => {
+  const listChangeAction = useCallback(async (message, isError, shouldRefresh = !isError) => {
     if (shouldRefresh) {
       // Send message via WebSocket
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -164,106 +160,90 @@ const HomePage = ({ scope = 'all' }) => {
     if (message) {
       showMessage(message);
     }
-  };
+  }, [fetchData, showMessage]);
+
+  const runListMutation = useCallback(async ({ request, successMessage, errorPrefix }) => {
+    try {
+      await request();
+      if (successMessage) {
+        showMessage(successMessage);
+      }
+      await listChangeAction();
+    } catch (error) {
+      showMessage(`${errorPrefix}: ${error.message}`);
+    }
+  }, [listChangeAction, showMessage]);
 
   // 处理收藏操作
-  const handleFavorite = async (id) => {
-    try {
-      await axios.post(`/api/favorite?id=${id}`, {}, {
-        withCredentials: true,
-      });
-      listChangeAction();
-    } catch (error) {
-      showMessage('操作失败: ' + error.message);
-    }
-  };
+  const handleFavorite = useCallback(async (id) => {
+    await runListMutation({
+      request: () => postWithAuth(`/api/favorite?id=${id}`),
+      errorPrefix: '操作失败',
+    });
+  }, [postWithAuth, runListMutation]);
 
   // 处理删除操作
-  const handleDelete = async (id) => {
-    setConfirmDialog({
-      open: true,
+  const handleDelete = useCallback((id) => {
+    openConfirmDialog({
       title: '确认删除',
       message: '确定要删除这条记录吗？',
-      onConfirm: async () => {
-        try {
-          await axios.post(`/api/delete?id=${id}`, {}, {
-            withCredentials: true,
-          });
-          showMessage('删除成功');
-          listChangeAction();
-        } catch (error) {
-          showMessage('删除失败: ' + error.message);
-        }
-      }
+      onConfirm: () => runListMutation({
+        request: () => postWithAuth(`/api/delete?id=${id}`),
+        successMessage: '删除成功',
+        errorPrefix: '删除失败',
+      })
     });
-  };
+  }, [openConfirmDialog, postWithAuth, runListMutation]);
 
   // 处理清空操作
-  const handleClean = async () => {
+  const handleClean = useCallback(() => {
     const isFavoriteScope = scope === 'favorite';
     const cleanQuery = isFavoriteScope ? '?favorite=true' : '';
 
-    setConfirmDialog({
-      open: true,
-      title: isFavoriteScope ? '确认清空收藏' : '确认清空列表',
+    openConfirmDialog({
+      title: isFavoriteScope ? '确认清空收藏' : '确认清空当前内容',
       message: isFavoriteScope
         ? '确定要清空所有已收藏内容吗？此操作不可撤销。'
-        : '确定要清空当前列表中的普通内容吗？已收藏内容会保留。',
-      confirmText: isFavoriteScope ? '清空收藏' : '清空列表',
-      onConfirm: async () => {
-        try {
-          await axios.post(`/api/clean${cleanQuery}`, {}, {
-            withCredentials: true,
-          });
-          showMessage(isFavoriteScope ? '收藏已清空' : '普通内容已清空，收藏已保留');
-          listChangeAction();
-        } catch (error) {
-          showMessage('清除失败: ' + error.message);
-        }
-      },
+        : '确定要清空当前页面里的内容吗？已收藏的内容会保留。',
+      confirmText: isFavoriteScope ? '清空收藏' : '清空内容',
+      onConfirm: () => runListMutation({
+        request: () => postWithAuth(`/api/clean${cleanQuery}`),
+        successMessage: isFavoriteScope ? '收藏已清空' : '已清空当前内容，收藏内容已保留',
+        errorPrefix: '清除失败',
+      }),
       confirmColor: 'error'
     });
-  };
+  }, [openConfirmDialog, postWithAuth, runListMutation, scope]);
 
 
 
   // 切换视图模式
-  const handleToggleViewMode = () => {
+  const handleToggleViewMode = useCallback(() => {
     setViewMode(prevMode => {
       const newMode = prevMode === 'list' ? 'gallery' : 'list';
       // Save to localStorage
       localStorage.setItem('arkdrop-view-mode', newMode);
       return newMode;
     });
-  };
+  }, []);
 
   const isFavoriteScope = scope === 'favorite';
-  const cleanLabel = isFavoriteScope ? '清空收藏' : '清空列表';
-  const emptyStateTitle = isFavoriteScope ? '暂无收藏' : '暂无内容';
+  const cleanLabel = isFavoriteScope ? '清空收藏' : '清空当前内容';
+  const emptyStateTitle = isFavoriteScope ? '还没有收藏' : '还没有内容';
   const emptyStateDescription = isFavoriteScope
-    ? '当前还没有收藏内容。先在列表里点亮星标，再回来集中查看。'
-    : '当前还没有内容。点击右下角 FAB 即可快速添加。';
-
-  cleanActionRef.current = handleClean;
-  toggleViewActionRef.current = handleToggleViewMode;
-
-  const handlePageClean = useCallback(() => {
-    cleanActionRef.current?.();
-  }, []);
-
-  const handlePageToggleView = useCallback(() => {
-    toggleViewActionRef.current?.();
-  }, []);
+    ? '看到想保留的内容时点一下星标，就能在这里快速找到。'
+    : '这里还没有内容，点右下角的加号就能添加。';
+  const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
 
   useEffect(() => {
     setPageActions({
       hasPageActions: true,
       viewMode,
       cleanLabel,
-      onToggleView: handlePageToggleView,
-      onClean: handlePageClean,
+      onToggleView: handleToggleViewMode,
+      onClean: handleClean,
     });
-  }, [cleanLabel, handlePageClean, handlePageToggleView, setPageActions, viewMode]);
+  }, [cleanLabel, handleClean, handleToggleViewMode, setPageActions, viewMode]);
 
   useEffect(() => {
     return () => {
@@ -271,8 +251,7 @@ const HomePage = ({ scope = 'all' }) => {
     };
   }, [resetPageActions]);
 
-  // 获取所有图片附件
-  const getAllImages = () => {
+  const galleryImages = useMemo(() => {
     const allImages = [];
     listData.forEach(item => {
       const images = item.attachments.filter(att => att.content_type.startsWith('image/'));
@@ -281,12 +260,12 @@ const HomePage = ({ scope = 'all' }) => {
           ...img,
           itemId: item.id,
           itemContent: item.content,
-          itemCreatedAt: item.created_at
+          itemCreatedAt: item.created_at,
         });
       });
     });
     return allImages;
-  };
+  }, [listData]);
 
   return (
     <>
@@ -337,14 +316,14 @@ const HomePage = ({ scope = 'all' }) => {
                     {emptyStateDescription}
                   </Typography>
                   {!isFavoriteScope && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<Add />}
-                      onClick={handleOpenModal}
-                      sx={{ borderRadius: 999, px: 2.5 }}
-                    >
-                      添加内容
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<Add />}
+                        onClick={openModal}
+                        sx={{ borderRadius: 999, px: 2.5 }}
+                      >
+                        添加内容
                     </Button>
                   )}
                 </Paper>
@@ -379,9 +358,11 @@ const HomePage = ({ scope = 'all' }) => {
                       <DataListItem
                         item={item}
                         expireSeconds={expireSeconds}
+                        imagePreviewCol={imagePreviewCol}
                         onFavorite={handleFavorite}
                         onDelete={handleDelete}
-                        onImagePreview={handleImagePreview}
+                        onCopyMessage={showMessage}
+                        onImagePreview={openImagePreview}
                       />
                     </Fragment>
                   ))}
@@ -389,8 +370,8 @@ const HomePage = ({ scope = 'all' }) => {
               )
             ) : (
               <ImageGalleryView
-                images={getAllImages()}
-                onImagePreview={handleImagePreview}
+                images={galleryImages}
+                onImagePreview={openImagePreview}
               />
             )}
           </Container>
@@ -401,14 +382,14 @@ const HomePage = ({ scope = 'all' }) => {
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
-        onClose={handleSnackbarClose}
+        onClose={closeSnackbar}
         message={snackbarMessage}
         action={
           <IconButton
             size="small"
             aria-label="close"
             color="inherit"
-            onClick={handleSnackbarClose}
+            onClick={closeSnackbar}
           >
             <Close fontSize="small" />
           </IconButton>
@@ -418,7 +399,7 @@ const HomePage = ({ scope = 'all' }) => {
       {/* 添加Modal组件 */}
       <CreatePostModal
         open={modalOpen}
-        handleClose={handleCloseModal}
+        handleClose={closeModal}
         onSubmitSuccess={listChangeAction}
         defaultFavorite={scope === 'favorite'}
       />
@@ -426,7 +407,7 @@ const HomePage = ({ scope = 'all' }) => {
       {/* 确认对话框 */}
       <ConfirmDialog
         open={confirmDialog.open}
-        onClose={handleCloseConfirmDialog}
+        onClose={closeConfirmDialog}
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
@@ -437,17 +418,17 @@ const HomePage = ({ scope = 'all' }) => {
       {/* 图片预览模态框 */}
       <ImagePreviewModal
         open={imagePreview.open}
-        onClose={handleCloseImagePreview}
+        onClose={closeImagePreview}
         imageSrc={imagePreview.src}
         imageAlt={imagePreview.alt}
       />
 
-      {/* 添加FAB浮动操作按钮 */}
+      {/* 添加悬浮新增按钮 */}
       <Tooltip title="添加内容">
         <Fab
           color="primary"
           aria-label="添加内容"
-          onClick={handleOpenModal}
+          onClick={openModal}
           sx={{
             position: 'fixed',
             bottom: 'calc(16px + env(safe-area-inset-bottom))',

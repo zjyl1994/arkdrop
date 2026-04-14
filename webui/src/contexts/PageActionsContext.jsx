@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const emptyPageActions = {
   hasPageActions: false,
@@ -21,8 +21,14 @@ export function PageActionsProvider({ children }) {
     setPageActions(emptyPageActions);
   }, []);
 
+  const value = useMemo(() => ({
+    pageActions,
+    setPageActions,
+    resetPageActions,
+  }), [pageActions, resetPageActions]);
+
   return (
-    <PageActionsContext.Provider value={{ pageActions, setPageActions, resetPageActions }}>
+    <PageActionsContext.Provider value={value}>
       {children}
     </PageActionsContext.Provider>
   );
