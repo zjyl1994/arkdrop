@@ -167,8 +167,6 @@ export default function AppNavBar() {
                         sx: {
                             width: drawerWidth,
                             maxWidth: 'calc(100vw - 12px)',
-                            borderTopRightRadius: 20,
-                            borderBottomRightRadius: 20,
                             backgroundImage: 'none',
                             backgroundColor: 'background.paper',
                             boxShadow: '0 14px 36px rgba(15, 23, 42, 0.18)',
@@ -176,11 +174,16 @@ export default function AppNavBar() {
                     }}
                 >
                     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
-                            <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 1 }}>
-                                导航
-                            </Typography>
-                            <Typography variant="h6" sx={{ mt: 0.25, fontWeight: 700 }}>
+                        <Box sx={{ px: 2, pt: 2.25, pb: 1.75 }}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    letterSpacing: '0.02em',
+                                    lineHeight: 1,
+                                }}
+                            >
                                 ArkDrop
                             </Typography>
                         </Box>
