@@ -1,10 +1,12 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/zjyl1994/arkdrop/vars"
 	"gorm.io/gorm"
 )
@@ -46,16 +48,13 @@ func (ParcelService) Delete(id int) error {
 		return err
 	}
 	attachmentIDs := make([]int, 0, len(fileList))
+	attachmentPaths := make([]string, 0, len(fileList))
 	for _, file := range fileList {
 		attachmentIDs = append(attachmentIDs, file.ID)
-		diskPath := filepath.Join(vars.DataDir, "files", file.FilePath)
-		err := os.Remove(diskPath)
-		if err != nil {
-			return err
-		}
+		attachmentPaths = append(attachmentPaths, filepath.Join(vars.DataDir, "files", file.FilePath))
 	}
 
-	return vars.DB.Transaction(func(tx *gorm.DB) error {
+	err = vars.DB.Transaction(func(tx *gorm.DB) error {
 		err := tx.Delete(&Parcel{}, id).Error
 		if err != nil {
 			return err
@@ -67,6 +66,17 @@ func (ParcelService) Delete(id int) error {
 		}
 		return tx.Where("parcel_id = ?", id).Delete(&Attachment{}).Error
 	})
+	if err != nil {
+		return err
+	}
+
+	for _, diskPath := range attachmentPaths {
+		if removeErr := os.Remove(diskPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			logrus.Warnln("Delete attachment file failed:", diskPath, removeErr)
+		}
+	}
+
+	return nil
 }
 
 func (s ParcelService) Clean(favorite bool) error {

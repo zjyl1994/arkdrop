@@ -21,7 +21,7 @@ func loadAttachmentWithParcel(id int) (service.Attachment, service.Parcel, error
 	}
 
 	var parcel service.Parcel
-	if err := vars.DB.Select("id", "favorite", "updated_at").First(&parcel, attachment.ParcelID).Error; err != nil {
+	if err := vars.DB.Select("id", "created_at", "favorite").First(&parcel, attachment.ParcelID).Error; err != nil {
 		return service.Attachment{}, service.Parcel{}, err
 	}
 
@@ -31,7 +31,7 @@ func loadAttachmentWithParcel(id int) (service.Attachment, service.Parcel, error
 func getAttachmentShareExpiresAt(parcel service.Parcel, now time.Time) int64 {
 	expiresAt := now.Add(vars.AttachmentLinkExpire).Unix()
 	if !parcel.Favorite {
-		parcelExpiresAt := parcel.UpdatedAt + int64(vars.AutoExpire.Seconds())
+		parcelExpiresAt := parcel.CreatedAt + int64(vars.AutoExpire.Seconds())
 		if parcelExpiresAt < expiresAt {
 			expiresAt = parcelExpiresAt
 		}
@@ -65,7 +65,7 @@ func CreateAttachmentShareLink(c *fiber.Ctx) error {
 		})
 	}
 
-	share, err := parcelService.CreateAttachmentShare(attachment.ID, expiresAt)
+	share, err := parcelService.GetOrCreateAttachmentShare(attachment.ID, expiresAt)
 	if err != nil {
 		return err
 	}

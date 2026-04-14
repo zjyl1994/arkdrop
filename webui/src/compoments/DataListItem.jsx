@@ -46,7 +46,7 @@ const DataListItem = ({
     if (item.favorite || !expireSeconds || expireSeconds === 0) return null;
 
     const now = Math.floor(currentTime / 1000);
-    const expireTime = item.updated_at + expireSeconds;
+    const expireTime = item.created_at + expireSeconds;
     const remainingTime = expireTime - now;
 
     if (remainingTime <= 0) return { progress: 0, timeLeft: '已过期' };
@@ -92,7 +92,7 @@ const DataListItem = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [expireSeconds, item.favorite, item.updated_at, shouldTrackTTL]);
+  }, [expireSeconds, item.created_at, item.favorite, shouldTrackTTL]);
 
   const handleCopyContent = async () => {
     try {
@@ -163,6 +163,11 @@ const DataListItem = ({
   };
 
   const handleCopyAttachmentLink = async (file) => {
+    if (!navigator.clipboard?.writeText) {
+      onCopyMessage?.('当前环境暂不支持直接复制链接，请换个浏览器再试');
+      return;
+    }
+
     try {
       const res = await axios.get(`/api/attachment/share-link?id=${file.id}`, {
         withCredentials: true,
