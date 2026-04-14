@@ -1,6 +1,7 @@
 package startup
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,6 +40,15 @@ func Start() (err error) {
 		return err
 	}
 
+	attachmentLinkExpireDuration := utils.COALESCE(os.Getenv("ARKDROP_ATTACHMENT_LINK_EXPIRE"), "1h")
+	vars.AttachmentLinkExpire, err = utils.ParseDuration(attachmentLinkExpireDuration)
+	if err != nil {
+		return err
+	}
+	if vars.AttachmentLinkExpire <= 0 {
+		return fmt.Errorf("ARKDROP_ATTACHMENT_LINK_EXPIRE must be greater than 0")
+	}
+
 	dbFile := filepath.Join(vars.DataDir, "arkdrop.db")
 	vars.DB, err = gorm.Open(sqlite.Open(dbFile), &gorm.Config{
 		Logger: gorm_logrus.New(),
@@ -51,7 +61,7 @@ func Start() (err error) {
 		return err
 	}
 
-	err = vars.DB.AutoMigrate(&service.Parcel{}, &service.Attachment{})
+	err = vars.DB.AutoMigrate(&service.Parcel{}, &service.Attachment{}, &service.AttachmentShare{})
 	if err != nil {
 		return err
 	}
@@ -61,6 +71,10 @@ func Start() (err error) {
 			err := service.CleanExpired()
 			if err != nil {
 				logrus.Errorln("Clean expired parcels failed:", err)
+			}
+			err = service.CleanExpiredAttachmentShares()
+			if err != nil {
+				logrus.Errorln("Clean expired attachment shares failed:", err)
 			}
 		}
 

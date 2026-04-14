@@ -45,7 +45,9 @@ func (ParcelService) Delete(id int) error {
 	if err != nil {
 		return err
 	}
+	attachmentIDs := make([]int, 0, len(fileList))
 	for _, file := range fileList {
+		attachmentIDs = append(attachmentIDs, file.ID)
 		diskPath := filepath.Join(vars.DataDir, "files", file.FilePath)
 		err := os.Remove(diskPath)
 		if err != nil {
@@ -57,6 +59,11 @@ func (ParcelService) Delete(id int) error {
 		err := tx.Delete(&Parcel{}, id).Error
 		if err != nil {
 			return err
+		}
+		if len(attachmentIDs) > 0 {
+			if err := tx.Where("attachment_id IN ?", attachmentIDs).Delete(&AttachmentShare{}).Error; err != nil {
+				return err
+			}
 		}
 		return tx.Where("parcel_id = ?", id).Delete(&Attachment{}).Error
 	})

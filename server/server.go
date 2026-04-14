@@ -29,7 +29,10 @@ func Run(listen string) error {
 	apiGroup.Post("/clean", CleanParcel)
 	apiGroup.Get("/list", ListParcel)
 	apiGroup.Post("/favorite", FavoriteParcel)
+	apiGroup.Get("/attachment/share-link", CreateAttachmentShareLink)
 	apiGroup.Get("/ws", websocket.New(WsHandler))
+
+	app.Get("/share/files/:token", DownloadSharedAttachment)
 
 	app.Use("/files", AuthMiddleware())
 	app.Static("/files", filepath.Join(vars.DataDir, "files"), fiber.Static{

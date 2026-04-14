@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	ListenAddr string
-	DataDir    string
-	DebugMode  bool
-	Password   string
-	AutoExpire time.Duration
+	ListenAddr           string
+	DataDir              string
+	DebugMode            bool
+	Password             string
+	AutoExpire           time.Duration
+	AttachmentLinkExpire time.Duration
 
 	DB          *gorm.DB
 	CapInstance cap.ICap

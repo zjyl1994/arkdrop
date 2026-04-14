@@ -1,6 +1,8 @@
+import axios from 'axios';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
+import LinkRounded from '@mui/icons-material/LinkRounded';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -14,6 +16,20 @@ const formatFileSize = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const formatLinkExpireText = (seconds) => {
+  if (!seconds || seconds <= 0) return '稍后会失效';
+  if (seconds < 60) return '1分钟内有效';
+
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${minutes}分钟内有效`;
+
+  const hours = Math.ceil(minutes / 60);
+  if (hours < 24) return `${hours}小时内有效`;
+
+  const days = Math.ceil(hours / 24);
+  return `${days}天内有效`;
 };
 
 const DataListItem = ({
@@ -143,6 +159,28 @@ const DataListItem = ({
            console.error('Fallback copy failed:', fallbackErr);
         }
       }
+    }
+  };
+
+  const handleCopyAttachmentLink = async (file) => {
+    try {
+      const res = await axios.get(`/api/attachment/share-link?id=${file.id}`, {
+        withCredentials: true,
+      });
+      const shareLink = new URL(res.data.path, window.location.origin).toString();
+
+      await navigator.clipboard.writeText(shareLink);
+
+      onCopyMessage?.(`下载链接已复制，${formatLinkExpireText(res.data.expires_in_seconds)}`);
+    } catch (error) {
+      console.error('Failed to create attachment share link:', error);
+
+      if (error?.name === 'NotAllowedError') {
+        onCopyMessage?.('复制失败，请允许浏览器访问剪贴板后再试');
+        return;
+      }
+
+      onCopyMessage?.('生成或复制下载链接失败，请稍后再试');
     }
   };
 
@@ -308,6 +346,15 @@ const DataListItem = ({
                           {formatFileSize(file.file_size)}
                         </Typography>
                       </Box>
+                      <IconButton
+                        size="small"
+                        aria-label="复制下载链接"
+                        title="复制下载链接"
+                        onClick={() => handleCopyAttachmentLink(file)}
+                        sx={{ p: 0.5 }}
+                      >
+                        <LinkRounded fontSize="small" />
+                      </IconButton>
                       <a
                         href={`/files/${file.file_path}`}
                         download={file.file_name}
@@ -315,7 +362,7 @@ const DataListItem = ({
                         rel="noopener noreferrer"
                         style={{ display: 'flex', textDecoration: 'none' }}
                       >
-                        <IconButton size="small" aria-label="download" sx={{ p: 0.5 }}>
+                        <IconButton size="small" aria-label="下载附件" title="下载附件" sx={{ p: 0.5 }}>
                           <Download fontSize="small" />
                         </IconButton>
                       </a>

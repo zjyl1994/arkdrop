@@ -19,3 +19,11 @@ type Attachment struct {
 	FileName    string `json:"file_name"`
 	FilePath    string `json:"file_path"`
 }
+
+type AttachmentShare struct {
+	Token        string `gorm:"primarykey;size:16" json:"token"`
+	CreatedAt    int64  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt    int64  `gorm:"autoUpdateTime" json:"updated_at"`
+	AttachmentID int    `gorm:"index" json:"attachment_id"`
+	ExpiresAt    int64  `gorm:"index" json:"expires_at"`
+}
