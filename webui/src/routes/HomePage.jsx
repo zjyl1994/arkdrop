@@ -297,7 +297,7 @@ const HomePage = ({ scope = 'all' }) => {
         overflow: 'hidden'
       }}>
         {/* AppBar占位空间 */}
-        <Box sx={{ height: { xs: '48px', sm: '52px' }, flexShrink: 0 }} />
+        <Box sx={{ height: { xs: '54px', sm: '56px' }, flexShrink: 0 }} />
 
         {/* 可滚动的内容区域 */}
         <Box

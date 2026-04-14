@@ -1,8 +1,10 @@
 import Cookies from 'js-cookie';
+import { Drawer, ListItemButton } from '@mui/material';
 import ClearAllRounded from '@mui/icons-material/ClearAllRounded';
 import GridView from '@mui/icons-material/GridView';
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
+import MenuRounded from '@mui/icons-material/MenuRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import ViewList from '@mui/icons-material/ViewList';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,9 +15,10 @@ export default function AppNavBar() {
     const location = useLocation();
     const { pageActions } = usePageActions();
     const isAuthenticated = !!Cookies.get('droptoken');
-    const showNavActions = isAuthenticated && location.pathname !== '/login';
-    const showPageActions = showNavActions && pageActions.hasPageActions;
+    const showAppShell = isAuthenticated && location.pathname !== '/login';
+    const showPageActions = showAppShell && pageActions.hasPageActions;
     const currentTab = location.pathname === '/favorites' ? '/favorites' : '/';
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const navItems = [
         { label: '内容主页', value: '/', icon: <HomeRounded /> },
         { label: '收藏视图', value: '/favorites', icon: <StarRounded /> },
@@ -32,14 +35,25 @@ export default function AppNavBar() {
             onClick: pageActions.onClean,
         },
     ];
+    const drawerWidth = 'min(82vw, 248px)';
+
+    const handleDrawerOpen = () => {
+        setDrawerOpen(true);
+    };
+
+    const handleDrawerClose = () => {
+        setDrawerOpen(false);
+    };
+
+    const handleNavigate = (value) => {
+        navigate(value);
+        handleDrawerClose();
+    };
 
     const handleLogout = async () => {
+        handleDrawerClose();
         Cookies.remove('droptoken');
         navigate('/login');
-    }
-
-    const handleTabChange = (_, nextValue) => {
-        navigate(nextValue);
     }
 
     return (
@@ -55,7 +69,32 @@ export default function AppNavBar() {
                     borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
                 }}
             >
-                <Toolbar sx={{ minHeight: { xs: 48, sm: 52 }, px: { xs: 1, sm: 1.5 } }}>
+                <Toolbar sx={{ minHeight: { xs: 54, sm: 56 }, px: { xs: 1, sm: 1.5 } }}>
+                    {showAppShell && (
+                        <Tooltip title="打开导航">
+                            <IconButton
+                                color="inherit"
+                                aria-label="打开导航抽屉"
+                                onClick={handleDrawerOpen}
+                                size="small"
+                                sx={{
+                                    mr: 0.5,
+                                    p: { xs: 0.75, sm: 0.6 },
+                                    color: 'rgba(255, 255, 255, 0.82)',
+                                    '& .MuiSvgIcon-root': {
+                                        fontSize: { xs: '1.2rem', sm: '1.1rem' },
+                                    },
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                        color: '#fff',
+                                    },
+                                }}
+                            >
+                                <MenuRounded />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
                     <Box
                         sx={{
                             flexGrow: 1,
@@ -70,7 +109,7 @@ export default function AppNavBar() {
                             sx={{
                                 fontWeight: 700,
                                 lineHeight: 1,
-                                fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                                fontSize: { xs: '0.95rem', sm: '0.98rem' },
                                 flexShrink: 0,
                             }}
                         >
@@ -78,63 +117,12 @@ export default function AppNavBar() {
                         </Typography>
                     </Box>
 
-                    {showNavActions && (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.25,
-                                mr: 0.25,
-                            }}
-                        >
-                            {navItems.map((item) => (
-                                <Tooltip key={item.value} title={item.label}>
-                                    <IconButton
-                                        color="inherit"
-                                        aria-label={item.label}
-                                        size="small"
-                                        onClick={() => handleTabChange(null, item.value)}
-                                        sx={{
-                                            p: 0.5,
-                                            borderRadius: 1.5,
-                                            color: currentTab === item.value
-                                                ? '#fff'
-                                                : 'rgba(255, 255, 255, 0.62)',
-                                            backgroundColor: currentTab === item.value
-                                                ? 'rgba(255, 255, 255, 0.14)'
-                                                : 'transparent',
-                                            boxShadow: currentTab === item.value
-                                                ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.12)'
-                                                : 'none',
-                                            transition: 'background-color 0.2s ease, color 0.2s ease, transform 0.2s ease',
-                                            '& .MuiSvgIcon-root': {
-                                                fontSize: { xs: '1rem', sm: '1.05rem' },
-                                            },
-                                            '&:hover': {
-                                                backgroundColor: currentTab === item.value
-                                                    ? 'rgba(255, 255, 255, 0.18)'
-                                                    : 'rgba(255, 255, 255, 0.08)',
-                                                transform: 'translateY(-1px)',
-                                            },
-                                        }}
-                                    >
-                                        {item.icon}
-                                    </IconButton>
-                                </Tooltip>
-                            ))}
-                        </Box>
-                    )}
-
                     {showPageActions && (
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                pl: 0.375,
-                                ml: 0.125,
                                 gap: 0.125,
-                                mr: 0.25,
-                                borderLeft: '1px solid rgba(255, 255, 255, 0.14)',
                             }}
                         >
                             {pageActionItems.map((item) => (
@@ -146,10 +134,10 @@ export default function AppNavBar() {
                                         size="small"
                                         disabled={!item.onClick}
                                         sx={{
-                                            p: 0.5,
+                                            p: { xs: 0.75, sm: 0.6 },
                                             color: 'rgba(255, 255, 255, 0.56)',
                                             '& .MuiSvgIcon-root': {
-                                                fontSize: { xs: '1rem', sm: '1.05rem' },
+                                                fontSize: { xs: '1.15rem', sm: '1.08rem' },
                                             },
                                             '&:hover': {
                                                 backgroundColor: 'rgba(255, 255, 255, 0.06)',
@@ -166,32 +154,109 @@ export default function AppNavBar() {
                             ))}
                         </Box>
                     )}
-
-                    {isAuthenticated && (
-                        <Tooltip title="退出登录">
-                            <IconButton
-                                color="inherit"
-                                aria-label="退出登录"
-                                onClick={handleLogout}
-                                size="small"
-                                sx={{
-                                    p: 0.5,
-                                    color: 'rgba(255, 255, 255, 0.72)',
-                                    '& .MuiSvgIcon-root': {
-                                        fontSize: { xs: '1rem', sm: '1.05rem' },
-                                    },
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                                        color: '#fff',
-                                    },
-                                }}
-                            >
-                                <LogoutRounded />
-                            </IconButton>
-                        </Tooltip>
-                    )}
                 </Toolbar>
             </AppBar>
+
+            {showAppShell && (
+                <Drawer
+                    anchor="left"
+                    open={drawerOpen}
+                    onClose={handleDrawerClose}
+                    transitionDuration={{ enter: 180, exit: 120 }}
+                    PaperProps={{
+                        sx: {
+                            width: drawerWidth,
+                            maxWidth: 'calc(100vw - 12px)',
+                            borderTopRightRadius: 20,
+                            borderBottomRightRadius: 20,
+                            backgroundImage: 'none',
+                            backgroundColor: 'background.paper',
+                            boxShadow: '0 14px 36px rgba(15, 23, 42, 0.18)',
+                        },
+                    }}
+                >
+                    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+                            <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 1 }}>
+                                导航
+                            </Typography>
+                            <Typography variant="h6" sx={{ mt: 0.25, fontWeight: 700 }}>
+                                ArkDrop
+                            </Typography>
+                        </Box>
+
+                        <Divider />
+
+                        <List sx={{ px: 1, py: 1 }}>
+                            {navItems.map((item) => {
+                                const selected = currentTab === item.value;
+                                return (
+                                    <ListItemButton
+                                        key={item.value}
+                                        selected={selected}
+                                        onClick={() => handleNavigate(item.value)}
+                                        sx={{
+                                            minHeight: 44,
+                                            px: 1.5,
+                                            borderRadius: 2,
+                                            mb: 0.5,
+                                            transition: 'background-color 0.18s ease, color 0.18s ease',
+                                            '&.Mui-selected': {
+                                                backgroundColor: 'rgba(63, 81, 181, 0.16)',
+                                                color: 'primary.main',
+                                                boxShadow: 'inset 0 0 0 1px rgba(63, 81, 181, 0.1)',
+                                            },
+                                            '&.Mui-selected:hover': {
+                                                backgroundColor: 'rgba(63, 81, 181, 0.2)',
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(63, 81, 181, 0.06)',
+                                            },
+                                        }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 36, color: selected ? 'primary.main' : 'text.secondary' }}>
+                                            {item.icon}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={item.label}
+                                            primaryTypographyProps={{
+                                                fontSize: '0.95rem',
+                                                fontWeight: selected ? 700 : 500,
+                                            }}
+                                        />
+                                    </ListItemButton>
+                                );
+                            })}
+                        </List>
+
+                        <Box sx={{ flexGrow: 1 }} />
+
+                        <Divider />
+
+                        <List sx={{ px: 1, py: 1, pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
+                            <ListItemButton
+                                onClick={handleLogout}
+                                sx={{
+                                    minHeight: 44,
+                                    borderRadius: 2,
+                                    color: 'text.secondary',
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                                    <LogoutRounded />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="退出登录"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.95rem',
+                                        fontWeight: 500,
+                                    }}
+                                />
+                            </ListItemButton>
+                        </List>
+                    </Box>
+                </Drawer>
+            )}
         </Box>
     )
 }
