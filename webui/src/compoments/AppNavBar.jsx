@@ -19,6 +19,7 @@ export default function AppNavBar() {
     const showPageActions = showAppShell && pageActions.hasPageActions;
     const currentTab = location.pathname === '/favorites' ? '/favorites' : '/';
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const buildTimeText = import.meta.env.VITE_BUILD_TIMESTAMP || '未知';
     const navItems = [
         { label: '首页', value: '/', icon: <HomeRounded /> },
         { label: '我的收藏', value: '/favorites', icon: <StarRounded /> },
@@ -275,6 +276,23 @@ export default function AppNavBar() {
                         <Box sx={{ flexGrow: 1 }} />
 
                         <Divider />
+
+                        <Box sx={{ px: 2.5, pt: 1.5 }}>
+                            <Typography
+                                variant="caption"
+                                color="text.disabled"
+                                sx={{ display: 'block', lineHeight: 1.5 }}
+                            >
+                                构建时间
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 0.25, fontFamily: 'monospace', wordBreak: 'break-all', opacity: 0.8 }}
+                            >
+                                {buildTimeText}
+                            </Typography>
+                        </Box>
 
                         <List sx={{ px: 1, py: 1, pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
                             {renderDrawerItem({

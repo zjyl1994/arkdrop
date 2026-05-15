@@ -135,6 +135,7 @@ export default defineConfig({
   ],
   define: {
     __BUILD_TIMESTAMP__: new Date().getTime(),
+    'import.meta.env.VITE_BUILD_TIMESTAMP': JSON.stringify(new Date().toLocaleString('zh-CN', { hour12: false })),
   },
   build: {
     rollupOptions: {
