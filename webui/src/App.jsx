@@ -6,13 +6,33 @@ import AppNavBar from './compoments/AppNavBar';
 import { PageActionsProvider } from './contexts/PageActionsContext';
 import './assets/scrollbar.css';
 
+const themeColor = indigo[500];
+
 const theme = createTheme({
   palette: {
     primary: {
-      main: indigo[500],
+      main: themeColor,
     },
     secondary: {
       main: blue[500],
+    },
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: {
+          height: '100%',
+          backgroundColor: themeColor,
+        },
+        body: {
+          minHeight: '100%',
+          backgroundColor: themeColor,
+        },
+        '#root': {
+          minHeight: '100%',
+          backgroundColor: '#fff',
+        },
+      },
     },
   },
   typography: {

@@ -110,7 +110,7 @@ export default defineConfig({
         short_name: 'ArkDrop',
         description: 'ArkDrop 是一个轻量化的文件传输助手实现',
         theme_color: '#3f51b5',
-        background_color: '#ffffff',
+        background_color: '#3f51b5',
         lang: 'zh-CN',
         start_url: '/',
         dir: 'ltr',

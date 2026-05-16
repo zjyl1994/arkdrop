@@ -4,13 +4,14 @@
 html, body {
   overflow: hidden;
   height: 100%;
-	background-color: #3f51b5;
+  background-color: #3f51b5;
 }
 
 /* 应用根容器 */
 #root {
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
+  background-color: #fff;
 }
 
 /* 只在特定容器内显示滚动条 */
