@@ -129,7 +129,27 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request, sameOrigin, url }) => (
+              sameOrigin
+              && request.destination === 'image'
+              && url.pathname.startsWith('/files/')
+            ),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'arkdrop-file-images',
+              expiration: {
+                maxEntries: 300,
+                maxAgeSeconds: 7 * 24 * 60 * 60,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ],
