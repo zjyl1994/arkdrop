@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import AttachmentImage from './AttachmentImage';
 
 const ImageGalleryView = ({ images, onImagePreview }) => {
   const theme = useTheme();
@@ -57,19 +58,16 @@ const ImageGalleryView = ({ images, onImagePreview }) => {
         }
       }}
     >
-      {images.map((image) => (
+      {images.map((image, index) => {
+        const imageSrc = `/files/${image.file_path}`;
+
+        return (
         <ImageListItem key={`${image.itemId}-${image.id}`}>
-          <img
-            src={`/files/${image.file_path}`}
+          <AttachmentImage
+            src={imageSrc}
             alt={image.file_name}
-            loading="lazy"
-            onClick={() => onImagePreview(`/files/${image.file_path}`, image.file_name)}
-            style={{
-              cursor: 'pointer',
-              width: '100%',
-              height: 'auto',
-              display: 'block'
-            }}
+            loading={index < cols * 2 ? 'eager' : 'lazy'}
+            onClick={() => onImagePreview(imageSrc, image.file_name)}
           />
           <ImageListItemBar
             title={image.file_name}
@@ -79,7 +77,7 @@ const ImageGalleryView = ({ images, onImagePreview }) => {
                 sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onImagePreview(`/files/${image.file_path}`, image.file_name);
+                  onImagePreview(imageSrc, image.file_name);
                 }}
               >
                 <ZoomIn />
@@ -98,7 +96,8 @@ const ImageGalleryView = ({ images, onImagePreview }) => {
             }}
           />
         </ImageListItem>
-      ))}
+        );
+      })}
     </ImageList>
   );
 };

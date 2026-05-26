@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import LinkRounded from '@mui/icons-material/LinkRounded';
+import AttachmentImage from './AttachmentImage';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -284,22 +285,20 @@ const DataListItem = ({
                     }
                   }}
                 >
-                  {imageList.map(file =>
-                    <ImageListItem key={file.id}>
-                      <img
-                        src={`/files/${file.file_path}`}
-                        alt={file.file_name}
-                        loading="lazy"
-                        onClick={() => onImagePreview(`/files/${file.file_path}`, file.file_name)}
-                        style={{ 
-                          cursor: 'pointer',
-                          width: '100%',
-                          height: 'auto',
-                          display: 'block'
-                        }}
-                      />
-                    </ImageListItem>
-                  )}
+                  {imageList.map((file, index) => {
+                    const imageSrc = `/files/${file.file_path}`;
+
+                    return (
+                      <ImageListItem key={file.id}>
+                        <AttachmentImage
+                          src={imageSrc}
+                          alt={file.file_name}
+                          loading={index < imagePreviewCol ? 'eager' : 'lazy'}
+                          onClick={() => onImagePreview(imageSrc, file.file_name)}
+                        />
+                      </ImageListItem>
+                    );
+                  })}
                 </ImageList>
               </Box>
             )}
