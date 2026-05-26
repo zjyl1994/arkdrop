@@ -4,6 +4,7 @@ const emptyPageActions = {
   hasPageActions: false,
   viewMode: 'list',
   cleanLabel: '',
+  onRefresh: null,
   onToggleView: null,
   onClean: null,
 };

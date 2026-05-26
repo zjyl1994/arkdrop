@@ -216,6 +216,10 @@ const HomePage = ({ scope = 'all' }) => {
   }, [openConfirmDialog, postWithAuth, runListMutation, scope]);
 
 
+  const handleRefresh = useCallback(async () => {
+    await fetchData();
+  }, [fetchData]);
+
 
   // 切换视图模式
   const handleToggleViewMode = useCallback(() => {
@@ -240,10 +244,11 @@ const HomePage = ({ scope = 'all' }) => {
       hasPageActions: true,
       viewMode,
       cleanLabel,
+      onRefresh: handleRefresh,
       onToggleView: handleToggleViewMode,
       onClean: handleClean,
     });
-  }, [cleanLabel, handleClean, handleToggleViewMode, setPageActions, viewMode]);
+  }, [cleanLabel, handleClean, handleRefresh, handleToggleViewMode, setPageActions, viewMode]);
 
   useEffect(() => {
     return () => {

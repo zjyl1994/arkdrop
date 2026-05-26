@@ -5,6 +5,7 @@ import GridView from '@mui/icons-material/GridView';
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
 import MenuRounded from '@mui/icons-material/MenuRounded';
+import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import ViewList from '@mui/icons-material/ViewList';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -25,6 +26,11 @@ export default function AppNavBar() {
         { label: '我的收藏', value: '/favorites', icon: <StarRounded /> },
     ];
     const pageActionItems = [
+        {
+            label: '刷新列表',
+            icon: <RefreshRounded />,
+            onClick: pageActions.onRefresh,
+        },
         {
             label: pageActions.viewMode === 'list' ? '切换到图片浏览' : '切换到列表浏览',
             icon: pageActions.viewMode === 'list' ? <GridView /> : <ViewList />,
