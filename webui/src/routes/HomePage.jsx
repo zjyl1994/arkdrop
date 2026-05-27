@@ -9,6 +9,7 @@ import ImagePreviewModal from '../compoments/ImagePreviewModal';
 import DataListItem from '../compoments/DataListItem';
 import ImageGalleryView from '../compoments/ImageGalleryView';
 import { usePageActions } from '../contexts/PageActionsContext';
+import { getListCacheKey, VIEW_MODE_STORAGE_KEY } from '../utils/clientCache';
 
 const authRequestConfig = { withCredentials: true };
 
@@ -37,21 +38,61 @@ const createImagePreviewState = (overrides = {}) => ({
   ...overrides,
 });
 
+const readListCache = (scope) => {
+  try {
+    const cached = localStorage.getItem(getListCacheKey(scope));
+    if (!cached) {
+      return null;
+    }
+
+    const parsed = JSON.parse(cached);
+    return {
+      list: Array.isArray(parsed?.list) ? parsed.list : [],
+      expireSeconds: Number.isFinite(parsed?.expireSeconds) ? parsed.expireSeconds : 0,
+      updatedAt: Number.isFinite(parsed?.updatedAt) ? parsed.updatedAt : 0,
+    };
+  } catch (error) {
+    console.warn(`Failed to read cached list for scope "${scope}"`, error);
+    return null;
+  }
+};
+
+const writeListCache = (scope, list, expireSeconds) => {
+  try {
+    localStorage.setItem(getListCacheKey(scope), JSON.stringify({
+      list,
+      expireSeconds,
+      updatedAt: Date.now(),
+    }));
+  } catch (error) {
+    console.warn(`Failed to cache list for scope "${scope}"`, error);
+  }
+};
+
+const getInitialListState = (scope) => {
+  const cached = readListCache(scope);
+  return {
+    listData: cached?.list || [],
+    expireSeconds: cached?.expireSeconds || 0,
+  };
+};
+
 const HomePage = ({ scope = 'all' }) => {
+  const initialListState = useMemo(() => getInitialListState(scope), [scope]);
   const { setPageActions, resetPageActions } = usePageActions();
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
   const isSm = useMediaQuery(theme.breakpoints.only('sm'));
   const isMd = useMediaQuery(theme.breakpoints.only('md'));
   const wsRef = useRef(null);
-  const [listData, setListData] = useState([]);
-  const [expireSeconds, setExpireSeconds] = useState(0);
+  const [listData, setListData] = useState(initialListState.listData);
+  const [expireSeconds, setExpireSeconds] = useState(initialListState.expireSeconds);
   const [modalOpen, setModalOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [viewMode, setViewMode] = useState(() => {
     // Load saved view mode from localStorage, default to 'list'
-    return localStorage.getItem('arkdrop-view-mode') || 'list';
+    return localStorage.getItem(VIEW_MODE_STORAGE_KEY) || 'list';
   });
   const scopeRef = useRef(scope);
   const [confirmDialog, setConfirmDialog] = useState(defaultConfirmDialog);
@@ -91,17 +132,35 @@ const HomePage = ({ scope = 'all' }) => {
     setImagePreview(defaultImagePreview);
   }, []);
 
-  const fetchData = useCallback(async (nextScope = scopeRef.current) => {
+  const fetchData = useCallback(async (nextScope = scopeRef.current, options = {}) => {
+    const { notifyOnCacheFallback = false } = options;
     const query = nextScope === 'favorite' ? '?favorite=true' : '';
 
     try {
       const res = await getWithAuth(`/api/list${query}`);
-      setListData(Array.isArray(res.data.list) ? res.data.list : []);
-      setExpireSeconds(res.data.expire_seconds);
+      const nextListData = Array.isArray(res.data.list) ? res.data.list : [];
+      const nextExpireSeconds = Number.isFinite(res.data.expire_seconds) ? res.data.expire_seconds : 0;
+
+      setListData(nextListData);
+      setExpireSeconds(nextExpireSeconds);
+      writeListCache(nextScope, nextListData, nextExpireSeconds);
     } catch (error) {
       console.error('Failed to fetch data', error);
+
+      if (!notifyOnCacheFallback) {
+        return;
+      }
+
+      const cached = readListCache(nextScope);
+      if (cached) {
+        setListData(cached.list);
+        setExpireSeconds(cached.expireSeconds);
+        showMessage('网络不可用，已显示本地缓存内容');
+      } else {
+        showMessage('网络不可用，且没有可用的本地缓存');
+      }
     }
-  }, [getWithAuth]);
+  }, [getWithAuth, showMessage]);
 
   // Fetch existing data on page load
   useEffect(() => {
@@ -142,7 +201,11 @@ const HomePage = ({ scope = 'all' }) => {
 
   useEffect(() => {
     scopeRef.current = scope;
-    fetchData(scope);
+    const cached = getInitialListState(scope);
+
+    setListData(cached.listData);
+    setExpireSeconds(cached.expireSeconds);
+    fetchData(scope, { notifyOnCacheFallback: true });
   }, [fetchData, scope]);
 
   const listChangeAction = useCallback(async (message, isError, shouldRefresh = !isError) => {
@@ -217,7 +280,7 @@ const HomePage = ({ scope = 'all' }) => {
 
 
   const handleRefresh = useCallback(async () => {
-    await fetchData();
+    await fetchData(scopeRef.current, { notifyOnCacheFallback: true });
   }, [fetchData]);
 
 
@@ -226,7 +289,7 @@ const HomePage = ({ scope = 'all' }) => {
     setViewMode(prevMode => {
       const newMode = prevMode === 'list' ? 'gallery' : 'list';
       // Save to localStorage
-      localStorage.setItem('arkdrop-view-mode', newMode);
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, newMode);
       return newMode;
     });
   }, []);

@@ -117,6 +117,21 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
+            src: 'images/favicon-16x16.png',
+            sizes: '16x16',
+            type: 'image/png'
+          },
+          {
+            src: 'images/favicon-32x32.png',
+            sizes: '32x32',
+            type: 'image/png'
+          },
+          {
+            src: 'images/apple-touch-icon.png',
+            sizes: '180x180',
+            type: 'image/png'
+          },
+          {
             src: 'images/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png'
@@ -130,7 +145,27 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: 'index.html',
         runtimeCaching: [
+          {
+            urlPattern: ({ request, sameOrigin, url }) => (
+              sameOrigin
+              && request.method === 'GET'
+              && url.pathname.startsWith('/api/list')
+            ),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'arkdrop-api-list',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 8,
+                maxAgeSeconds: 24 * 60 * 60,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: ({ request, sameOrigin, url }) => (
               sameOrigin

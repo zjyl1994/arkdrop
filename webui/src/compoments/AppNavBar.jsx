@@ -10,6 +10,7 @@ import StarRounded from '@mui/icons-material/StarRounded';
 import ViewList from '@mui/icons-material/ViewList';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePageActions } from '../contexts/PageActionsContext';
+import { clearArkDropClientCache } from '../utils/clientCache';
 
 export default function AppNavBar() {
     const navigate = useNavigate();
@@ -118,6 +119,7 @@ export default function AppNavBar() {
 
     const handleLogout = async () => {
         handleDrawerClose();
+        await clearArkDropClientCache();
         Cookies.remove('droptoken');
         navigate('/login');
     }
