@@ -173,6 +173,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
+  const fileInputRef = useRef(null);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
@@ -231,6 +232,23 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     setFiles([]);
     setFileInputKey(Date.now());
     setKeepOriginalImage(false);
+  };
+
+  const handleFileInputChange = (event) => {
+    const nextFiles = Array.from(event.target.files || []);
+    if (nextFiles.length === 0) {
+      return;
+    }
+
+    setFiles((prevFiles) => [...prevFiles, ...nextFiles]);
+  };
+
+  const openFilePicker = () => {
+    if (uploading) {
+      return;
+    }
+
+    fileInputRef.current?.click();
   };
 
   const createParcel = async () => {
@@ -518,21 +536,23 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
           gap: 1,
           justifyContent: 'space-between'
         }}>
+          <VisuallyHiddenInput
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileInputChange}
+            key={fileInputKey}
+            multiple
+            disabled={uploading}
+          />
+
           {/* 上传按钮 */}
           <Button
-            component="label"
             variant="outlined"
             startIcon={!isXs && <CloudUpload />}
+            onClick={openFilePicker}
             disabled={uploading}
           >
             选择文件
-            <VisuallyHiddenInput
-              type="file"
-              onChange={(e) => setFiles((prevFiles) => [...prevFiles, ...Array.from(e.target.files || [])])}
-              key={fileInputKey}
-              multiple
-              disabled={uploading}
-            />
           </Button>
 
           <Box sx={{
