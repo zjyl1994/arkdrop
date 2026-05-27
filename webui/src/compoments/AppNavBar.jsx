@@ -11,6 +11,7 @@ import ViewList from '@mui/icons-material/ViewList';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePageActions } from '../contexts/PageActionsContext';
 import { clearArkDropClientCache } from '../utils/clientCache';
+import { toggleErudaEnabled } from '../utils/eruda';
 
 export default function AppNavBar() {
     const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function AppNavBar() {
     const currentTab = location.pathname === '/favorites' ? '/favorites' : '/';
     const [drawerOpen, setDrawerOpen] = useState(false);
     const buildTimeText = import.meta.env.VITE_BUILD_TIMESTAMP || '未知';
+    const lastBuildInfoTapAtRef = useRef(0);
     const navItems = [
         { label: '首页', value: '/', icon: <HomeRounded /> },
         { label: '我的收藏', value: '/favorites', icon: <StarRounded /> },
@@ -122,6 +124,18 @@ export default function AppNavBar() {
         await clearArkDropClientCache();
         Cookies.remove('droptoken');
         navigate('/login');
+    }
+
+    const handleBuildInfoClick = async () => {
+        const now = Date.now();
+
+        if (now - lastBuildInfoTapAtRef.current <= 350) {
+            lastBuildInfoTapAtRef.current = 0;
+            await toggleErudaEnabled();
+            return;
+        }
+
+        lastBuildInfoTapAtRef.current = now;
     }
 
     const renderToolbarAction = (item) => (
@@ -285,7 +299,10 @@ export default function AppNavBar() {
 
                         <Divider />
 
-                        <Box sx={{ px: 2.5, pt: 1.5 }}>
+                        <Box
+                            onClick={handleBuildInfoClick}
+                            sx={{ px: 2.5, pt: 1.5, userSelect: 'none' }}
+                        >
                             <Typography
                                 variant="caption"
                                 color="text.disabled"

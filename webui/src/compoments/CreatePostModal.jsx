@@ -16,6 +16,16 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
+const FileButtonInput = styled('input')({
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  opacity: 0,
+  cursor: 'pointer',
+  zIndex: 1,
+});
+
 // Format file size with appropriate unit
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 B';
@@ -173,7 +183,6 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
-  const fileInputRef = useRef(null);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
@@ -241,14 +250,6 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     }
 
     setFiles((prevFiles) => [...prevFiles, ...nextFiles]);
-  };
-
-  const openFilePicker = () => {
-    if (uploading) {
-      return;
-    }
-
-    fileInputRef.current?.click();
   };
 
   const createParcel = async () => {
@@ -536,24 +537,25 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
           gap: 1,
           justifyContent: 'space-between'
         }}>
-          <VisuallyHiddenInput
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileInputChange}
-            key={fileInputKey}
-            multiple
-            disabled={uploading}
-          />
-
           {/* 上传按钮 */}
-          <Button
-            variant="outlined"
-            startIcon={!isXs && <CloudUpload />}
-            onClick={openFilePicker}
-            disabled={uploading}
-          >
-            选择文件
-          </Button>
+          <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+            <Button
+              variant="outlined"
+              startIcon={!isXs && <CloudUpload />}
+              disabled={uploading}
+              tabIndex={-1}
+            >
+              选择文件
+            </Button>
+            <FileButtonInput
+              aria-label="选择文件"
+              type="file"
+              onChange={handleFileInputChange}
+              key={fileInputKey}
+              multiple
+              disabled={uploading}
+            />
+          </Box>
 
           <Box sx={{
             display: 'inline-flex',

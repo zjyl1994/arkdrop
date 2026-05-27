@@ -1,5 +1,6 @@
 export const VIEW_MODE_STORAGE_KEY = 'arkdrop-view-mode';
 export const LIST_CACHE_KEY_PREFIX = 'arkdrop-list-cache:';
+export const ERUDA_STORAGE_KEY = 'arkdrop-eruda-enabled';
 
 export const getListCacheKey = (scope) => `${LIST_CACHE_KEY_PREFIX}${scope}`;
 
@@ -9,7 +10,7 @@ export const clearArkDropStorage = () => {
 
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
-      if (key && (key === VIEW_MODE_STORAGE_KEY || key.startsWith(LIST_CACHE_KEY_PREFIX))) {
+      if (key && (key === VIEW_MODE_STORAGE_KEY || key === ERUDA_STORAGE_KEY || key.startsWith(LIST_CACHE_KEY_PREFIX))) {
         keysToRemove.push(key);
       }
     }
