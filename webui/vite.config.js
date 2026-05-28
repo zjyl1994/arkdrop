@@ -3,6 +3,66 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa';
 import AutoImport from 'unplugin-auto-import/vite';
 
+const pwaThemeColor = '#3f51b5';
+
+function getVendorChunkName(id) {
+  if (!id.includes('node_modules')) {
+    return undefined;
+  }
+
+  if (id.includes('eruda')) {
+    return 'vendor-eruda';
+  }
+
+  if (
+    id.includes('react-router-dom')
+    || id.includes('react-router')
+  ) {
+    return 'vendor-router';
+  }
+
+  if (
+    id.includes('/react/')
+    || id.includes('/react-dom/')
+    || id.includes('/scheduler/')
+  ) {
+    return 'vendor-react';
+  }
+
+  if (id.includes('@mui/icons-material')) {
+    return 'vendor-mui-icons';
+  }
+
+  if (
+    id.includes('@mui/material')
+    || id.includes('@mui/system')
+    || id.includes('@mui/utils')
+    || id.includes('@mui/private-theming')
+    || id.includes('@mui/styled-engine')
+    || id.includes('@mui/core-downloads-tracker')
+  ) {
+    return 'vendor-mui';
+  }
+
+  if (id.includes('@emotion')) {
+    return 'vendor-emotion';
+  }
+
+  if (id.includes('@cap.js')) {
+    return 'vendor-cap';
+  }
+
+  if (id.includes('axios')) {
+    return 'vendor-axios';
+  }
+
+  if (id.includes('dayjs')) {
+    return 'vendor-dayjs';
+  }
+
+  return 'vendor-others';
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -109,12 +169,15 @@ export default defineConfig({
         name: 'ArkDrop 文件传输助手',
         short_name: 'ArkDrop',
         description: 'ArkDrop 是一个轻量化的文件传输助手实现',
-        theme_color: '#3f51b5',
-        background_color: '#3f51b5',
+        id: '/',
+        scope: '/',
+        theme_color: pwaThemeColor,
+        background_color: pwaThemeColor,
         lang: 'zh-CN',
         start_url: '/',
         dir: 'ltr',
         display: 'standalone',
+        display_override: ['standalone', 'browser'],
         icons: [
           {
             src: 'images/favicon-16x16.png',
@@ -196,13 +259,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) {
-              return 'vendor-react';
-            } else {
-              return 'vendor-others';
-            }
-          }
+          return getVendorChunkName(id);
         }
       }
     }
