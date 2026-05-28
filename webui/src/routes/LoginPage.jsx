@@ -39,7 +39,9 @@ export default function LoginPage() {
     return () => {
       try {
         if (capRef.current?.reset) capRef.current.reset();
-      } catch (e) {}
+      } catch (error) {
+        console.warn('CAP cleanup reset error', error);
+      }
     };
   }, []);
 

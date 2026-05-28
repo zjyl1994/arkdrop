@@ -3,15 +3,17 @@ import Fab from '@mui/material/Fab';
 import { useTheme } from '@mui/material/styles';
 
 // 导入CreatePostModal组件
-import CreatePostModal from '../compoments/CreatePostModal';
-import ConfirmDialog from '../compoments/ConfirmDialog';
-import ImagePreviewModal from '../compoments/ImagePreviewModal';
-import DataListItem from '../compoments/DataListItem';
-import ImageGalleryView from '../compoments/ImageGalleryView';
+import CreatePostModal from '../components/CreatePostModal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import ImagePreviewModal from '../components/ImagePreviewModal';
+import DataListItem from '../components/DataListItem';
+import ImageGalleryView from '../components/ImageGalleryView';
 import { usePageActions } from '../contexts/PageActionsContext';
 import { getListCacheKey, VIEW_MODE_STORAGE_KEY } from '../utils/clientCache';
 
 const authRequestConfig = { withCredentials: true };
+const PULL_REFRESH_TRIGGER = 72;
+const PULL_REFRESH_MAX = 120;
 
 const defaultConfirmDialog = {
   open: false,
@@ -85,6 +87,10 @@ const HomePage = ({ scope = 'all' }) => {
   const isSm = useMediaQuery(theme.breakpoints.only('sm'));
   const isMd = useMediaQuery(theme.breakpoints.only('md'));
   const wsRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const pullStartYRef = useRef(0);
+  const isPullTrackingRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
   const [listData, setListData] = useState(initialListState.listData);
   const [expireSeconds, setExpireSeconds] = useState(initialListState.expireSeconds);
   const [modalOpen, setModalOpen] = useState(false);
@@ -94,6 +100,8 @@ const HomePage = ({ scope = 'all' }) => {
     // Load saved view mode from localStorage, default to 'list'
     return localStorage.getItem(VIEW_MODE_STORAGE_KEY) || 'list';
   });
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const scopeRef = useRef(scope);
   const [confirmDialog, setConfirmDialog] = useState(defaultConfirmDialog);
   const [imagePreview, setImagePreview] = useState(defaultImagePreview);
@@ -279,9 +287,80 @@ const HomePage = ({ scope = 'all' }) => {
   }, [openConfirmDialog, postWithAuth, runListMutation, scope]);
 
 
-  const handleRefresh = useCallback(async () => {
-    await fetchData(scopeRef.current, { notifyOnCacheFallback: true });
+  const handleRefresh = useCallback(async ({ showPullIndicator = false } = {}) => {
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    if (showPullIndicator) {
+      setIsPullRefreshing(true);
+    }
+
+    try {
+      await fetchData(scopeRef.current, { notifyOnCacheFallback: true });
+    } finally {
+      refreshInFlightRef.current = false;
+      if (showPullIndicator) {
+        setIsPullRefreshing(false);
+      }
+      setPullDistance(0);
+    }
   }, [fetchData]);
+
+  const handlePullTouchStart = useCallback((event) => {
+    const container = scrollContainerRef.current;
+
+    if (!container || refreshInFlightRef.current || container.scrollTop > 0 || event.touches.length !== 1) {
+      isPullTrackingRef.current = false;
+      return;
+    }
+
+    pullStartYRef.current = event.touches[0].clientY;
+    isPullTrackingRef.current = true;
+  }, []);
+
+  const handlePullTouchMove = useCallback((event) => {
+    if (!isPullTrackingRef.current || refreshInFlightRef.current) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container || container.scrollTop > 0) {
+      isPullTrackingRef.current = false;
+      setPullDistance(0);
+      return;
+    }
+
+    const deltaY = event.touches[0].clientY - pullStartYRef.current;
+    if (deltaY <= 0) {
+      setPullDistance(0);
+      return;
+    }
+
+    const dampedDistance = Math.min(PULL_REFRESH_MAX, deltaY * 0.45);
+    setPullDistance(dampedDistance);
+  }, []);
+
+  const resetPullState = useCallback(() => {
+    isPullTrackingRef.current = false;
+    setPullDistance(0);
+  }, []);
+
+  const handlePullTouchEnd = useCallback(async () => {
+    if (!isPullTrackingRef.current) {
+      return;
+    }
+
+    isPullTrackingRef.current = false;
+
+    if (pullDistance < PULL_REFRESH_TRIGGER) {
+      setPullDistance(0);
+      return;
+    }
+
+    await handleRefresh({ showPullIndicator: true });
+  }, [handleRefresh, pullDistance]);
 
 
   // 切换视图模式
@@ -301,6 +380,8 @@ const HomePage = ({ scope = 'all' }) => {
     ? '看到想保留的内容时点一下星标，就能在这里快速找到。'
     : '这里还没有内容，点右下角的加号就能添加。';
   const imagePreviewCol = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
+  const pullRefreshReady = pullDistance >= PULL_REFRESH_TRIGGER;
+  const pullIndicatorHeight = isPullRefreshing ? PULL_REFRESH_TRIGGER : pullDistance;
 
   useEffect(() => {
     setPageActions({
@@ -348,14 +429,38 @@ const HomePage = ({ scope = 'all' }) => {
 
         {/* 可滚动的内容区域 */}
         <Box
+          ref={scrollContainerRef}
           className="scrollable-container"
+          onTouchStart={handlePullTouchStart}
+          onTouchMove={handlePullTouchMove}
+          onTouchEnd={handlePullTouchEnd}
+          onTouchCancel={resetPullState}
           sx={{
             flex: 1,
             overflow: 'auto',
+            overscrollBehaviorY: 'contain',
             pt: { xs: 1.25, sm: 2 },
             pb: { xs: 10.5, sm: 8.5 }
           }}
         >
+          <Box
+            sx={{
+              height: pullIndicatorHeight,
+              opacity: pullIndicatorHeight > 0 ? 1 : 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              color: pullRefreshReady || isPullRefreshing ? 'primary.main' : 'text.secondary',
+              transition: 'height 0.18s ease, opacity 0.18s ease, color 0.18s ease',
+              willChange: 'height',
+            }}
+          >
+            {isPullRefreshing && <CircularProgress size={18} color="inherit" />}
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {isPullRefreshing ? '刷新中...' : pullRefreshReady ? '松开刷新列表' : '下拉刷新列表'}
+            </Typography>
+          </Box>
           <Container maxWidth="lg" sx={{ px: { xs: 1.25, sm: 2 } }}>
             {viewMode === 'list' ? (
               listData.length === 0 ? (

@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './routes/HomePage';
 import LoginPage from './routes/LoginPage';
 import PrivateRoute from './routes/PrivateRoute';
-import AppNavBar from './compoments/AppNavBar';
+import AppNavBar from './components/AppNavBar';
 import { PageActionsProvider } from './contexts/PageActionsContext';
 import './assets/scrollbar.css';
 
