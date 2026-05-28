@@ -5,64 +5,6 @@ import AutoImport from 'unplugin-auto-import/vite';
 
 const pwaThemeColor = '#3f51b5';
 
-function getVendorChunkName(id) {
-  if (!id.includes('node_modules')) {
-    return undefined;
-  }
-
-  if (id.includes('eruda')) {
-    return 'vendor-eruda';
-  }
-
-  if (
-    id.includes('react-router-dom')
-    || id.includes('react-router')
-  ) {
-    return 'vendor-router';
-  }
-
-  if (
-    id.includes('/react/')
-    || id.includes('/react-dom/')
-    || id.includes('/scheduler/')
-  ) {
-    return 'vendor-react';
-  }
-
-  if (id.includes('@mui/icons-material')) {
-    return 'vendor-mui-icons';
-  }
-
-  if (
-    id.includes('@mui/material')
-    || id.includes('@mui/system')
-    || id.includes('@mui/utils')
-    || id.includes('@mui/private-theming')
-    || id.includes('@mui/styled-engine')
-    || id.includes('@mui/core-downloads-tracker')
-  ) {
-    return 'vendor-mui';
-  }
-
-  if (id.includes('@emotion')) {
-    return 'vendor-emotion';
-  }
-
-  if (id.includes('@cap.js')) {
-    return 'vendor-cap';
-  }
-
-  if (id.includes('axios')) {
-    return 'vendor-axios';
-  }
-
-  if (id.includes('dayjs')) {
-    return 'vendor-dayjs';
-  }
-
-  return 'vendor-others';
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -254,15 +196,6 @@ export default defineConfig({
   define: {
     __BUILD_TIMESTAMP__: new Date().getTime(),
     'import.meta.env.VITE_BUILD_TIMESTAMP': JSON.stringify(new Date().toLocaleString('zh-CN', { hour12: false })),
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          return getVendorChunkName(id);
-        }
-      }
-    }
   },
   server: {
     proxy: {
