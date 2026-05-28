@@ -319,7 +319,7 @@ export default function AppNavBar() {
                             </Typography>
                         </Box>
 
-                        <List sx={{ px: 1, py: 1, pb: 'calc(8px + env(safe-area-inset-bottom))' }}>
+                        <List sx={{ px: 1, py: 1, pb: 1 }}>
                             {renderDrawerItem({
                                 key: 'logout',
                                 label: '退出登录',

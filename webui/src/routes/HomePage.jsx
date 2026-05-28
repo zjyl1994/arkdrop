@@ -425,7 +425,12 @@ const HomePage = ({ scope = 'all' }) => {
         overflow: 'hidden'
       }}>
         {/* AppBar占位空间 */}
-        <Box sx={{ height: { xs: '54px', sm: '56px' }, flexShrink: 0 }} />
+        <Box
+          sx={{
+            height: { xs: '54px', sm: '56px' },
+            flexShrink: 0,
+          }}
+        />
 
         {/* 可滚动的内容区域 */}
         <Box
@@ -604,7 +609,7 @@ const HomePage = ({ scope = 'all' }) => {
           onClick={openModal}
           sx={{
             position: 'fixed',
-            bottom: 'calc(16px + env(safe-area-inset-bottom))',
+            bottom: 16,
             right: { xs: 16, sm: 24 },
             zIndex: 1300,
           }}
