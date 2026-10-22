@@ -1,15 +1,16 @@
 import axios from 'axios';
+import { reconcileImageCache, pruneImages } from '../utils/imageCache';
 import Fab from '@mui/material/Fab';
 import { useTheme } from '@mui/material/styles';
 
-// 导入CreatePostModal组件
-import CreatePostModal from '../components/CreatePostModal';
+// The composer lives above routes so transfers survive navigation.
+import { useUpload } from '../contexts/UploadContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import DataListItem from '../components/DataListItem';
 import ImageGalleryView from '../components/ImageGalleryView';
 import { usePageActions } from '../contexts/PageActionsContext';
-import { getListCacheKey, VIEW_MODE_STORAGE_KEY } from '../utils/clientCache';
+import { getListCacheKey, VIEW_MODE_STORAGE_KEY, LIST_CACHE_MAX_AGE, filterUnexpired, clearListCaches, pruneListCaches } from '../utils/clientCache';
 
 const authRequestConfig = { withCredentials: true };
 const PULL_REFRESH_TRIGGER = 72;
@@ -48,8 +49,12 @@ const readListCache = (scope) => {
     }
 
     const parsed = JSON.parse(cached);
+    if (!parsed.updatedAt || Date.now() - parsed.updatedAt > LIST_CACHE_MAX_AGE) {
+      localStorage.removeItem(getListCacheKey(scope));
+      return null;
+    }
     return {
-      list: Array.isArray(parsed?.list) ? parsed.list : [],
+      list: filterUnexpired(Array.isArray(parsed?.list) ? parsed.list : [], parsed.expireSeconds || 0),
       expireSeconds: Number.isFinite(parsed?.expireSeconds) ? parsed.expireSeconds : 0,
       updatedAt: Number.isFinite(parsed?.updatedAt) ? parsed.updatedAt : 0,
     };
@@ -91,9 +96,13 @@ const HomePage = ({ scope = 'all' }) => {
   const pullStartYRef = useRef(0);
   const isPullTrackingRef = useRef(false);
   const refreshInFlightRef = useRef(false);
+  const requestVersionRef = useRef(0);
+  const [connection, setConnection] = useState(navigator.onLine ? 'connecting' : 'offline');
+  const [lastSynced, setLastSynced] = useState(() => readListCache(scope)?.updatedAt || 0);
+  const [usingCache, setUsingCache] = useState(true);
   const [listData, setListData] = useState(initialListState.listData);
   const [expireSeconds, setExpireSeconds] = useState(initialListState.expireSeconds);
-  const [modalOpen, setModalOpen] = useState(false);
+  const { openUpload } = useUpload();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [viewMode, setViewMode] = useState(() => {
@@ -109,8 +118,7 @@ const HomePage = ({ scope = 'all' }) => {
   const getWithAuth = useCallback((url) => axios.get(url, authRequestConfig), []);
   const postWithAuth = useCallback((url, payload = {}) => axios.post(url, payload, authRequestConfig), []);
 
-  const openModal = useCallback(() => setModalOpen(true), []);
-  const closeModal = useCallback(() => setModalOpen(false), []);
+  const openModal = useCallback(() => openUpload(scope === 'favorite'), [openUpload, scope]);
 
   const closeSnackbar = useCallback((event, reason) => {
     if (reason === 'clickaway') {
@@ -142,17 +150,32 @@ const HomePage = ({ scope = 'all' }) => {
 
   const fetchData = useCallback(async (nextScope = scopeRef.current, options = {}) => {
     const { notifyOnCacheFallback = false } = options;
-    const query = nextScope === 'favorite' ? '?favorite=true' : '';
+    const version = ++requestVersionRef.current;
+
 
     try {
-      const res = await getWithAuth(`/api/list${query}`);
-      const nextListData = Array.isArray(res.data.list) ? res.data.list : [];
+      const res = await getWithAuth('/api/list');
+      if (version !== requestVersionRef.current || nextScope !== scopeRef.current) return;
+      const allListData = filterUnexpired(Array.isArray(res.data.list) ? res.data.list : [], res.data.expire_seconds || 0);
       const nextExpireSeconds = Number.isFinite(res.data.expire_seconds) ? res.data.expire_seconds : 0;
 
+      const nextListData = nextScope === 'favorite' ? allListData.filter((item) => item.favorite) : allListData;
+      void reconcileImageCache(allListData, nextExpireSeconds).catch(() => {});
+      setUsingCache(false);
+      setLastSynced(Date.now());
       setListData(nextListData);
       setExpireSeconds(nextExpireSeconds);
-      writeListCache(nextScope, nextListData, nextExpireSeconds);
+      writeListCache('all', allListData, nextExpireSeconds);
+      writeListCache('favorite', allListData.filter((item) => item.favorite), nextExpireSeconds);
     } catch (error) {
+      if (version !== requestVersionRef.current || nextScope !== scopeRef.current) return;
+      setUsingCache(true);
+      if (error.response?.status === 401) {
+        clearListCaches();
+        setListData([]);
+        window.location.assign('/login');
+        return;
+      }
       console.error('Failed to fetch data', error);
 
       if (!notifyOnCacheFallback) {
@@ -170,45 +193,103 @@ const HomePage = ({ scope = 'all' }) => {
     }
   }, [getWithAuth, showMessage]);
 
-  // Fetch existing data on page load
   useEffect(() => {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/ws?echo=1`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('WebSocket connection established');
+    let stopped = false;
+    let retryTimer;
+    let changeTimer;
+    let firstConnection = true;
+    let attempts = 0;
+    let socket;
+    const disconnect = () => {
+      if (!socket) return;
+      socket.onopen = socket.onclose = socket.onmessage = socket.onerror = null;
+      socket.close();
+      socket = null;
+      wsRef.current = null;
     };
-
-    ws.onmessage = (event) => {
-      console.log('Received WebSocket message:', event.data);
-      if (event.data === 'list_change') {
-        fetchData();
+    const connect = () => {
+      clearTimeout(retryTimer);
+      if (stopped || !navigator.onLine) {
+        setConnection('offline');
+        return;
       }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
-    return () => {
-      ws.onopen = null;
-      ws.onmessage = null;
-      ws.onerror = null;
-      ws.onclose = null;
-      ws.close();
-      if (wsRef.current === ws) {
+      if (socket && socket.readyState < WebSocket.CLOSING) return;
+      setConnection('connecting');
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      socket = new WebSocket(`${protocol}//${location.host}/api/ws?echo=0`);
+      wsRef.current = socket;
+      socket.onopen = () => {
+        attempts = 0;
+        setConnection('connected');
+        if (!firstConnection) void fetchData();
+        firstConnection = false;
+      };
+      socket.onmessage = (event) => {
+        if (event.data === 'list_change') {
+          clearListCaches();
+          clearTimeout(changeTimer);
+          changeTimer = setTimeout(() => void fetchData(), 400);
+        }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = () => {
+        socket = null;
         wsRef.current = null;
-      }
+        setConnection(navigator.onLine ? 'connecting' : 'offline');
+        if (!stopped && navigator.onLine) {
+          retryTimer = setTimeout(connect, Math.min(30000, 1000 * 2 ** attempts++) + Math.random() * 500);
+        }
+      };
     };
-  }, [fetchData]);
+    const resume = () => {
+      if (document.visibilityState === 'hidden') return;
+      disconnect();
+      firstConnection = false;
+      connect();
+    };
+    const offline = () => {
+      clearTimeout(retryTimer);
+      disconnect();
+      setConnection('offline');
+      setUsingCache(true);
+    };
+    const notifyChange = () => {
+      clearListCaches();
+      clearTimeout(changeTimer);
+      changeTimer = setTimeout(() => {
+        void fetchData();
+        if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send('list_change');
+      }, 400);
+    };
+    connect();
+    window.addEventListener('arkdrop-list-change', notifyChange);
+    window.addEventListener('online', resume);
+    window.addEventListener('offline', offline);
+    document.addEventListener('visibilitychange', resume);
+    // Reconcile missed notifications and remove expired temporary records.
+    const reconcileTimer = setInterval(() => {
+      pruneListCaches();
+      void pruneImages().catch(() => {});
+      setListData((list) => filterUnexpired(list, expireSeconds));
+      if (navigator.onLine && document.visibilityState !== 'hidden' && wsRef.current?.readyState !== WebSocket.OPEN) void fetchData();
+    }, 30000);
+    return () => {
+      stopped = true;
+      clearTimeout(retryTimer);
+      clearTimeout(changeTimer);
+      clearInterval(reconcileTimer);
+      disconnect();
+      window.removeEventListener('arkdrop-list-change', notifyChange);
+      window.removeEventListener('online', resume);
+      window.removeEventListener('offline', offline);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [fetchData, expireSeconds]);
 
   useEffect(() => {
     scopeRef.current = scope;
+    setUsingCache(true);
+    setLastSynced(readListCache(scope)?.updatedAt || 0);
     const cached = getInitialListState(scope);
 
     setListData(cached.listData);
@@ -218,12 +299,10 @@ const HomePage = ({ scope = 'all' }) => {
 
   const listChangeAction = useCallback(async (message, isError, shouldRefresh = !isError) => {
     if (shouldRefresh) {
-      // Send message via WebSocket
+      await fetchData();
+      // Notify other devices without an echo that repeats our own request.
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send('list_change');
-      } else {
-        console.warn('WebSocket is not connected or closed, cannot send message.');
-        await fetchData();
       }
     }
 
@@ -236,6 +315,7 @@ const HomePage = ({ scope = 'all' }) => {
   const runListMutation = useCallback(async ({ request, successMessage, errorPrefix }) => {
     try {
       await request();
+      clearListCaches();
       if (successMessage) {
         showMessage(successMessage);
       }
@@ -467,6 +547,11 @@ const HomePage = ({ scope = 'all' }) => {
             </Typography>
           </Box>
           <Container maxWidth="lg" sx={{ px: { xs: 1.25, sm: 2 } }}>
+            <Typography role="status" variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              {connection === 'connected' ? '设备同步已连接' : connection === 'offline' ? '离线' : '正在恢复设备连接…'}
+              {usingCache ? ' · 显示临时列表，已缓存图片可离线查看' : ''}
+              {lastSynced ? ` · 最后同步 ${new Date(lastSynced).toLocaleTimeString('zh-CN')}` : ''}
+            </Typography>
             {viewMode === 'list' ? (
               listData.length === 0 ? (
                 <Paper
@@ -572,14 +657,6 @@ const HomePage = ({ scope = 'all' }) => {
             <Close fontSize="small" />
           </IconButton>
         }
-      />
-
-      {/* 添加Modal组件 */}
-      <CreatePostModal
-        open={modalOpen}
-        handleClose={closeModal}
-        onSubmitSuccess={listChangeAction}
-        defaultFavorite={scope === 'favorite'}
       />
 
       {/* 确认对话框 */}

@@ -25,6 +25,7 @@ func Run(listen string) error {
 	apiGroup.Post("/cap/redeem", RedeemChallenge)
 	apiGroup.Post("/create", CreateParcel)
 	apiGroup.Post("/attachment", AddParcelAttachment)
+	apiGroup.Get("/attachment/upload-status", AttachmentUploadStatus)
 	apiGroup.Post("/delete", DeleteParcel)
 	apiGroup.Post("/clean", CleanParcel)
 	apiGroup.Get("/list", ListParcel)
@@ -34,9 +35,9 @@ func Run(listen string) error {
 
 	app.Get("/share/files/:token", DownloadSharedAttachment)
 
-	app.Use("/files", AuthMiddleware())
+	app.Use("/files", AuthMiddleware(), FileCacheHeaders)
 	app.Static("/files", filepath.Join(vars.DataDir, "files"), fiber.Static{
-		MaxAge:    int(vars.AutoExpire.Seconds()),
+		MaxAge:    -1,
 		ByteRange: true,
 	})
 

@@ -5,6 +5,8 @@ import PrivateRoute from './routes/PrivateRoute';
 import AppNavBar from './components/AppNavBar';
 import { PageActionsProvider } from './contexts/PageActionsContext';
 import './assets/scrollbar.css';
+import { UploadProvider } from './contexts/UploadContext';
+import PWAUpdateNotice from './components/PWAUpdateNotice';
 
 const themeColor = indigo[500];
 
@@ -46,26 +48,29 @@ function App() {
       <CssBaseline />
       <PageActionsProvider>
         <BrowserRouter>
-          <AppNavBar />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <HomePage scope="all" />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/favorites"
-              element={
-                <PrivateRoute>
-                  <HomePage scope="favorite" />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
+          <UploadProvider>
+            <PWAUpdateNotice />
+            <AppNavBar />
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <HomePage scope="all" />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/favorites"
+                element={
+                  <PrivateRoute>
+                    <HomePage scope="favorite" />
+                  </PrivateRoute>
+                }
+              />
+            </Routes>
+          </UploadProvider>
         </BrowserRouter>
       </PageActionsProvider>
     </ThemeProvider>

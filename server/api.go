@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -16,6 +17,71 @@ import (
 )
 
 var parcelService service.ParcelService
+
+var uploadKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{16,80}$`)
+
+func uploadKey(c *fiber.Ctx) (*string, error) {
+	key := c.Get("X-Upload-Key")
+	if key == "" {
+		return nil, nil
+	}
+	if !uploadKeyPattern.MatchString(key) {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "invalid upload key")
+	}
+	return &key, nil
+}
+
+func parcelExpiry(parcel service.Parcel) int64 {
+	if parcel.Favorite || vars.AutoExpire <= 0 {
+		return time.Now().Add(24 * time.Hour).Unix()
+	}
+	return parcel.CreatedAt + int64(vars.AutoExpire.Seconds())
+}
+
+func liveParcel(id int) (service.Parcel, error) {
+	var parcel service.Parcel
+	if err := vars.DB.First(&parcel, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return parcel, fiber.NewError(fiber.StatusNotFound, "parcel not found")
+		}
+		return parcel, err
+	}
+	if parcelExpiry(parcel) <= time.Now().Unix() {
+		return parcel, fiber.NewError(fiber.StatusGone, "parcel expired")
+	}
+	return parcel, nil
+}
+
+func uploadResponse(c *fiber.Ctx, parcel service.Parcel, attachments []service.Attachment) error {
+	return c.JSON(fiber.Map{"count": len(attachments), "attachments": attachments, "expires_at": parcelExpiry(parcel)})
+}
+
+// AttachmentUploadStatus lets retries confirm a lost response before resending a file.
+func AttachmentUploadStatus(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Query("id"))
+	if err != nil || id <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid parcel id")
+	}
+	key, err := uploadKey(c)
+	if err != nil {
+		return err
+	}
+	if key == nil {
+		return fiber.NewError(fiber.StatusBadRequest, "missing upload key")
+	}
+	parcel, err := liveParcel(id)
+	if err != nil {
+		return err
+	}
+	attachment, err := parcelService.AttachmentUpload(id, *key)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return c.JSON(fiber.Map{"attachments": []service.Attachment{}, "expires_at": parcelExpiry(parcel)})
+	}
+	if err != nil {
+		return err
+	}
+	return uploadResponse(c, parcel, []service.Attachment{attachment})
+}
 
 func buildAttachment(file *multipart.FileHeader, now int64) service.Attachment {
 	return service.Attachment{
@@ -77,6 +143,10 @@ func parseOptionalBoolQuery(c *fiber.Ctx, key string) (*bool, error) {
 
 func CreateParcel(c *fiber.Ctx) (err error) {
 	var parcel service.Parcel
+	parcel.UploadKey, err = uploadKey(c)
+	if err != nil {
+		return err
+	}
 	parcel.Content = c.FormValue("content")
 	rawFavorite := c.FormValue("favorite")
 	if rawFavorite != "" {
@@ -96,8 +166,12 @@ func CreateParcel(c *fiber.Ctx) (err error) {
 		return err
 	}
 
+	if parcelExpiry(parcel) <= time.Now().Unix() {
+		return fiber.NewError(fiber.StatusGone, "parcel expired")
+	}
 	return c.JSON(fiber.Map{
-		"id": parcel.ID,
+		"id":         parcel.ID,
+		"expires_at": parcelExpiry(parcel),
 	})
 }
 
@@ -109,6 +183,23 @@ func AddParcelAttachment(c *fiber.Ctx) error {
 		})
 	}
 
+	parcel, err := liveParcel(id)
+	if err != nil {
+		return err
+	}
+	key, err := uploadKey(c)
+	if err != nil {
+		return err
+	}
+	if key != nil {
+		attachment, err := parcelService.AttachmentUpload(id, *key)
+		if err == nil {
+			return uploadResponse(c, parcel, []service.Attachment{attachment})
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
 	form, err := c.MultipartForm()
 	if err != nil {
 		return err
@@ -121,11 +212,28 @@ func AddParcelAttachment(c *fiber.Ctx) error {
 		})
 	}
 
+	if key != nil && len(files) != 1 {
+		return fiber.NewError(fiber.StatusBadRequest, "keyed uploads require one file")
+	}
 	attachments, savedPaths, err := saveAttachments(c, files)
 	if err != nil {
 		return err
 	}
 
+	if key != nil {
+		attachments[0].UploadKey = key
+		attachment, reused, err := parcelService.AddAttachmentOnce(id, attachments[0])
+		if reused || err != nil {
+			cleanupSavedFiles(savedPaths)
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "parcel not found")
+		}
+		if err != nil {
+			return err
+		}
+		return uploadResponse(c, parcel, []service.Attachment{attachment})
+	}
 	err = parcelService.AddAttachments(id, attachments)
 	if err != nil {
 		cleanupSavedFiles(savedPaths)
@@ -137,9 +245,7 @@ func AddParcelAttachment(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(fiber.Map{
-		"count": len(attachments),
-	})
+	return uploadResponse(c, parcel, attachments)
 }
 
 func ListParcel(c *fiber.Ctx) error {

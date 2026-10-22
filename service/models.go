@@ -1,6 +1,7 @@
 package service
 
 type Parcel struct {
+	UploadKey   *string      `gorm:"uniqueIndex" json:"-"`
 	ID          int          `gorm:"primarykey" json:"id"`
 	CreatedAt   int64        `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   int64        `gorm:"autoUpdateTime" json:"updated_at"`
@@ -10,14 +11,15 @@ type Parcel struct {
 }
 
 type Attachment struct {
-	ID          int    `gorm:"primarykey" json:"id"`
-	CreatedAt   int64  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt   int64  `gorm:"autoUpdateTime" json:"updated_at"`
-	ParcelID    int    `json:"parcel_id"`
-	ContentType string `json:"content_type"`
-	FileSize    int64  `json:"file_size"`
-	FileName    string `json:"file_name"`
-	FilePath    string `json:"file_path"`
+	UploadKey   *string `gorm:"uniqueIndex:idx_attachment_upload" json:"-"`
+	ID          int     `gorm:"primarykey" json:"id"`
+	CreatedAt   int64   `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt   int64   `gorm:"autoUpdateTime" json:"updated_at"`
+	ParcelID    int     `gorm:"uniqueIndex:idx_attachment_upload" json:"parcel_id"`
+	ContentType string  `json:"content_type"`
+	FileSize    int64   `json:"file_size"`
+	FileName    string  `json:"file_name"`
+	FilePath    string  `json:"file_path"`
 }
 
 type AttachmentShare struct {

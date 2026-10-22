@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@cap.js/wasm": "^0.0.6",
@@ -24,7 +25,11 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "6",
-    "vite-plugin-pwa": "^1.0.1"
+    "vite-plugin-pwa": "^1.0.1",
+    "workbox-core": "7.3.0",
+    "workbox-precaching": "7.3.0",
+    "workbox-routing": "7.3.0",
+    "workbox-window": "7.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

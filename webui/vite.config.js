@@ -98,7 +98,10 @@ export default defineConfig({
       },
     }),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: [
         'favicon.ico',
         'images/apple-touch-icon.png',
@@ -148,48 +151,9 @@ export default defineConfig({
           }
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        navigateFallback: 'index.html',
-        runtimeCaching: [
-          {
-            urlPattern: ({ request, sameOrigin, url }) => (
-              sameOrigin
-              && request.method === 'GET'
-              && url.pathname.startsWith('/api/list')
-            ),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'arkdrop-api-list',
-              networkTimeoutSeconds: 3,
-              expiration: {
-                maxEntries: 8,
-                maxAgeSeconds: 24 * 60 * 60,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: ({ request, sameOrigin, url }) => (
-              sameOrigin
-              && request.destination === 'image'
-              && url.pathname.startsWith('/files/')
-            ),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'arkdrop-file-images',
-              expiration: {
-                maxEntries: 300,
-                maxAgeSeconds: 7 * 24 * 60 * 60,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
+
       },
     }),
   ],

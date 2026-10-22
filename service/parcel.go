@@ -9,13 +9,22 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/zjyl1994/arkdrop/vars"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ParcelService struct{}
 
 func (ParcelService) Create(parcel Parcel) (Parcel, error) {
-	err := vars.DB.Create(&parcel).Error
-	return parcel, err
+	result := vars.DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&parcel)
+	if result.Error != nil {
+		return parcel, result.Error
+	}
+	if result.RowsAffected == 0 && parcel.UploadKey != nil {
+		var existing Parcel
+		err := vars.DB.Where("upload_key = ?", *parcel.UploadKey).First(&existing).Error
+		return existing, err
+	}
+	return parcel, nil
 }
 
 func (ParcelService) AddAttachments(parcelID int, attachments []Attachment) error {
@@ -43,18 +52,14 @@ func (ParcelService) AddAttachments(parcelID int, attachments []Attachment) erro
 
 func (ParcelService) Delete(id int) error {
 	var fileList []Attachment
-	err := vars.DB.Where("parcel_id = ?", id).Find(&fileList).Error
-	if err != nil {
-		return err
-	}
-	attachmentIDs := make([]int, 0, len(fileList))
-	attachmentPaths := make([]string, 0, len(fileList))
-	for _, file := range fileList {
-		attachmentIDs = append(attachmentIDs, file.ID)
-		attachmentPaths = append(attachmentPaths, filepath.Join(vars.DataDir, "files", file.FilePath))
-	}
-
-	err = vars.DB.Transaction(func(tx *gorm.DB) error {
+	err := vars.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("parcel_id = ?", id).Find(&fileList).Error; err != nil {
+			return err
+		}
+		attachmentIDs := make([]int, 0, len(fileList))
+		for _, file := range fileList {
+			attachmentIDs = append(attachmentIDs, file.ID)
+		}
 		err := tx.Delete(&Parcel{}, id).Error
 		if err != nil {
 			return err
@@ -70,7 +75,8 @@ func (ParcelService) Delete(id int) error {
 		return err
 	}
 
-	for _, diskPath := range attachmentPaths {
+	for _, file := range fileList {
+		diskPath := filepath.Join(vars.DataDir, "files", file.FilePath)
 		if removeErr := os.Remove(diskPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			logrus.Warnln("Delete attachment file failed:", diskPath, removeErr)
 		}

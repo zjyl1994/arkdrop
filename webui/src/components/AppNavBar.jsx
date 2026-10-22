@@ -11,10 +11,12 @@ import ViewList from '@mui/icons-material/ViewList';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePageActions } from '../contexts/PageActionsContext';
 import { clearArkDropClientCache } from '../utils/clientCache';
+import { useUpload } from '../contexts/UploadContext';
 import { toggleErudaEnabled } from '../utils/eruda';
 
 export default function AppNavBar() {
     const navigate = useNavigate();
+    const { pending, openUpload } = useUpload();
     const location = useLocation();
     const { pageActions } = usePageActions();
     const isAuthenticated = !!Cookies.get('droptoken');
@@ -121,6 +123,10 @@ export default function AppNavBar() {
 
     const handleLogout = async () => {
         handleDrawerClose();
+        if (pending) {
+            openUpload();
+            return;
+        }
         await clearArkDropClientCache();
         Cookies.remove('droptoken');
         navigate('/login');

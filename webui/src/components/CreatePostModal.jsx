@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { newUploadKey, uploadAttachment } from '../utils/upload';
 import { Checkbox, FormControlLabel } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -175,7 +176,7 @@ const modalStyle = {
   overflow: 'hidden',
 };
 
-const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite = false }) => {
+const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite = false, onUploadingChange, onPendingChange }) => {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
@@ -183,6 +184,28 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
+  const parcelRef = useRef(null);
+  const createKeyRef = useRef(null);
+  const uploadKeysRef = useRef(new Map());
+  const attemptedUploadsRef = useRef(new Set());
+  const completedRef = useRef(new Set());
+  const preparedRef = useRef(new Map());
+  const busyRef = useRef(false);
+  const [fileStates, setFileStates] = useState({});
+  const [hasSession, setHasSession] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const patchFile = (index, state) => setFileStates((previous) => ({ ...previous, [index]: state }));
+
+  useEffect(() => {
+    onPendingChange?.(uploading || hasSession || files.length > 0 || content.length > 0);
+  }, [uploading, hasSession, files.length, content, onPendingChange]);
+
+  useEffect(() => {
+    if (!uploading && !hasSession) return;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [uploading, hasSession]);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
@@ -193,7 +216,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
   useEffect(() => {
     const handlePaste = async (e) => {
       // 只在模态框打开时处理粘贴事件
-      if (!open) return;
+      if (!open || uploading || hasSession) return;
 
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -234,13 +257,22 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     return () => {
       document.removeEventListener('paste', handlePaste);
     };
-  }, [open, onSubmitSuccess]);
+  }, [open, onSubmitSuccess, uploading, hasSession]);
 
   const resetForm = () => {
     setContent('');
     setFiles([]);
     setFileInputKey(Date.now());
     setKeepOriginalImage(false);
+    parcelRef.current = null;
+    createKeyRef.current = null;
+    uploadKeysRef.current.clear();
+    attemptedUploadsRef.current.clear();
+    completedRef.current.clear();
+    preparedRef.current.clear();
+    setFileStates({});
+    setHasSession(false);
+    setSubmitError('');
   };
 
   const handleFileInputChange = (event) => {
@@ -257,8 +289,10 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     if (content) formData.append('content', content);
     if (defaultFavorite) formData.append('favorite', 'true');
 
+    createKeyRef.current ||= newUploadKey();
     const response = await axios.post('/api/create', formData, {
       withCredentials: true,
+      headers: { 'X-Upload-Key': createKeyRef.current },
     });
 
     const parcelId = response.data?.id;
@@ -267,12 +301,6 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     }
 
     return parcelId;
-  };
-
-  const deleteParcel = async (parcelId) => {
-    await axios.post(`/api/delete?id=${parcelId}`, {}, {
-      withCredentials: true,
-    });
   };
 
   const prepareFileForUpload = async (file) => {
@@ -288,21 +316,15 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
     }
   };
 
-  const uploadFile = async (parcelId, file, fileIndex, totalFiles) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    await axios.post(`/api/attachment?id=${parcelId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      withCredentials: true,
-      onUploadProgress: (progressEvent) => {
-        const fileProgress = progressEvent.total
-          ? progressEvent.loaded / progressEvent.total
-          : 0;
-        const totalProgress = ((fileIndex + fileProgress) / totalFiles) * 100;
-        setUploadProgress(Math.round(totalProgress));
+  const uploadFile = async (parcelId, file, index, completedBytes, totalBytes) => {
+    if (!uploadKeysRef.current.has(index)) uploadKeysRef.current.set(index, newUploadKey());
+    const checkExisting = attemptedUploadsRef.current.has(index);
+    attemptedUploadsRef.current.add(index);
+    return uploadAttachment({
+      parcelId, file, key: uploadKeysRef.current.get(index), checkExisting,
+      onProgress: (event) => {
+        const fraction = event.total ? event.loaded / event.total : 0;
+        setUploadProgress(Math.min(99, Math.round((completedBytes + file.size * fraction) / Math.max(1, totalBytes) * 100)));
       },
     });
   };
@@ -314,84 +336,100 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
       return;
     }
 
-    let parcelId = null;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setUploading(true);
+    onUploadingChange?.(true);
+    setSubmitError('');
+    setHasSession(true);
     try {
-      setUploading(true);
-      setUploadProgress(0);
-      setUploadStatus('正在创建内容...');
-
-      parcelId = await createParcel();
-
-      let compressedCount = 0;
-      let totalBytesSaved = 0;
-
+      // Prepare once so retries reuse the same bytes and progress is byte weighted.
       for (let i = 0; i < files.length; i++) {
-        const currentFile = files[i];
-        setUploadStatus(`正在${keepOriginalImage && currentFile.type.startsWith('image/') ? '准备原图' : '处理'} ${i + 1}/${files.length}: ${currentFile.name}`);
-        const preparedFile = await prepareFileForUpload(currentFile);
-
-        if (preparedFile.compressed) {
-          compressedCount += 1;
-          totalBytesSaved += preparedFile.bytesSaved;
+        if (!preparedRef.current.has(i)) {
+          patchFile(i, '正在处理');
+          setUploadStatus(`正在处理 ${i + 1}/${files.length}: ${files[i].name}`);
+          preparedRef.current.set(i, await prepareFileForUpload(files[i]));
+          patchFile(i, '等待上传');
         }
-
-        setUploadStatus(`正在上传 ${i + 1}/${files.length}: ${preparedFile.file.name}`);
-        await uploadFile(parcelId, preparedFile.file, i, files.length);
       }
-
-      setUploadProgress(100);
-      resetForm();
-
-      // 关闭Modal并通知父组件刷新列表
-      handleClose();
-
-      let successMessage = '提交成功';
-      if (files.length > 0) {
-        successMessage += `，已逐张上传 ${files.length} 个文件`;
+      const totalBytes = files.reduce((sum, _, i) => sum + preparedRef.current.get(i).file.size, 0);
+      let completedBytes = [...completedRef.current].reduce((sum, i) => sum + preparedRef.current.get(i).file.size, 0);
+      setUploadProgress(totalBytes ? Math.round(completedBytes / totalBytes * 100) : 0);
+      if (!parcelRef.current) {
+        setUploadStatus('正在创建内容…');
+        parcelRef.current = await createParcel();
+        setHasSession(true);
       }
-      if (defaultFavorite) {
-        successMessage += '，已默认加入星标';
-      }
-      if (keepOriginalImage && hasImageFiles) {
-        successMessage += '，图片保持原图上传';
-      }
-      if (compressedCount > 0 && totalBytesSaved > 0) {
-        successMessage += `，压缩节省 ${formatFileSize(totalBytesSaved)}`;
-      }
-
-      if (onSubmitSuccess) onSubmitSuccess(successMessage, false, true);
-    } catch (error) {
-      let rollbackFailed = false;
-
-      if (parcelId) {
+      let failed = 0;
+      for (let i = 0; i < files.length; i++) {
+        if (completedRef.current.has(i)) continue;
+        const file = preparedRef.current.get(i).file;
+        patchFile(i, '上传中');
+        setUploadStatus(`正在上传 ${i + 1}/${files.length}: ${file.name}`);
         try {
-          await deleteParcel(parcelId);
-        } catch (rollbackError) {
-          rollbackFailed = true;
-          console.error('Failed to rollback parcel after upload error:', rollbackError);
+          await uploadFile(parcelRef.current, file, i, completedBytes, totalBytes);
+          completedRef.current.add(i);
+          completedBytes += file.size;
+          patchFile(i, '已完成');
+          window.dispatchEvent(new Event('arkdrop-list-change'));
+        } catch (error) {
+          if ([404, 410].includes(error.response?.status)) {
+            // The temporary parcel may have expired or been removed on another device.
+            parcelRef.current = null;
+            createKeyRef.current = null;
+            uploadKeysRef.current.clear();
+            attemptedUploadsRef.current.clear();
+            completedRef.current.clear();
+            preparedRef.current.clear();
+            setHasSession(false);
+            setFileStates({});
+            throw new Error('临时记录已过期或被删除，请重新发送');
+          }
+          failed += 1;
+          patchFile(i, `失败：${getErrorMessage(error)}`);
         }
       }
-
-      let errorMessage = `提交失败: ${getErrorMessage(error)}`;
-      if (parcelId && !rollbackFailed) {
-        errorMessage += '，未完成记录已回滚';
+      if (failed) {
+        setSubmitError(`${failed} 个文件未确认上传成功，已完成文件会保留。重试时会先确认服务器接收状态。`);
+        setUploadStatus('部分文件上传失败');
+      } else {
+        setUploadProgress(100);
+        resetForm();
+        handleClose();
+        onSubmitSuccess?.('发送成功', false, true);
       }
-      if (rollbackFailed) {
-        errorMessage += '，且自动回滚失败，请手动删除该记录';
+    } catch (error) {
+      if ([404, 410].includes(error.response?.status)) {
+        parcelRef.current = null;
+        createKeyRef.current = null;
+        uploadKeysRef.current.clear();
+        attemptedUploadsRef.current.clear();
+        preparedRef.current.clear();
+        completedRef.current.clear();
+        setFileStates({});
+        setHasSession(false);
       }
-
-      if (onSubmitSuccess) onSubmitSuccess(errorMessage, true, false);
+      setSubmitError(`发送失败：${getErrorMessage(error)}`);
     } finally {
+      window.dispatchEvent(new Event('arkdrop-list-change'));
+      busyRef.current = false;
       setUploading(false);
-      setUploadProgress(0);
-      setUploadStatus('');
+      onUploadingChange?.(false);
     }
+  };
+
+  const closeComposer = () => {
+    if (!uploading) {
+      if (hasSession) onSubmitSuccess?.('已保留服务器收到的内容；未完成文件已从发送队列移除', false, true);
+      resetForm();
+    }
+    handleClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={uploading ? undefined : handleClose}
+      onClose={closeComposer}
       aria-labelledby="create-post-modal"
       aria-describedby="modal-to-create-new-post"
     >
@@ -411,7 +449,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
               maxRows={15}
               style={{ width: '100%', resize: 'none' }}
               placeholder="写点内容，或直接粘贴文字、图片"
-              disabled={uploading}
+              disabled={uploading || hasSession}
             />
             {!isXs &&
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
@@ -420,6 +458,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
             }
           </Box>
 
+          {submitError && <Alert severity="warning" sx={{ mb: 2 }}>{submitError}</Alert>}
           {/* Upload progress bar */}
           {uploading && (
             <Box sx={{ width: '100%', mb: 2 }}>
@@ -458,7 +497,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
                       <Checkbox
                         checked={keepOriginalImage}
                         onChange={(e) => setKeepOriginalImage(e.target.checked)}
-                        disabled={uploading}
+                        disabled={uploading || hasSession}
                       />
                     )}
                     label="保持原图"
@@ -509,7 +548,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
                         {file.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                        ({formatFileSize(file.size)})
+                        ({formatFileSize(file.size)}) {fileStates[index] || '等待发送'}
                       </Typography>
                     </Box>
                     <IconButton
@@ -517,7 +556,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
                       onClick={() => {
                         setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
                       }}
-                      disabled={uploading}
+                      disabled={uploading || hasSession}
                       sx={{ ml: 1 }}
                     >
                       <Close fontSize="small" />
@@ -542,7 +581,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
             <Button
               variant="outlined"
               startIcon={!isXs && <CloudUpload />}
-              disabled={uploading}
+              disabled={uploading || hasSession}
               tabIndex={-1}
             >
               选择文件
@@ -553,7 +592,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
               onChange={handleFileInputChange}
               key={fileInputKey}
               multiple
-              disabled={uploading}
+              disabled={uploading || hasSession}
             />
           </Box>
 
@@ -565,10 +604,9 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
             <Button
               variant="outlined"
               startIcon={!isXs && <Cancel />}
-              onClick={handleClose}
-              disabled={uploading}
+              onClick={closeComposer}
             >
-              取消
+              {uploading ? '收起' : hasSession ? '结束本次发送' : '取消'}
             </Button>
             <Button
               variant="contained"
@@ -582,7 +620,7 @@ const CreatePostModal = ({ open, handleClose, onSubmitSuccess, defaultFavorite =
                 }
               }}
             >
-              {uploading ? '上传中...' : '发送'}
+              {uploading ? '上传中...' : hasSession ? '重试失败项' : '发送'}
             </Button>
           </Box>
         </Box>
